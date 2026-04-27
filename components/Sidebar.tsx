@@ -12,13 +12,9 @@ const adminNavItems = [
 ];
 
 // Visible to all authenticated users (not protected but accessible)
-const allUsersNavItems = [
-  { label: "Clientes", href: "/dashboard/clients", icon: IconUsers },
-];
+const allUsersNavItems = [{ label: "Clientes", href: "/dashboard/clients", icon: IconUsers }];
 
-const baseNavItems = [
-  { label: "Turnos", href: "/dashboard", icon: IconCalendar },
-];
+const baseNavItems = [{ label: "Turnos", href: "/dashboard", icon: IconCalendar }];
 
 interface SidebarProps {
   onNavigate?: () => void;
@@ -31,9 +27,10 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
   const { user, signOut } = useAuthStore();
 
   // Only show admin routes to ADMIN users, clients visible to all
-  const navItems = user?.role === 'ADMIN' 
-    ? [...baseNavItems, ...allUsersNavItems, ...adminNavItems] 
-    : [...baseNavItems, ...allUsersNavItems];
+  const navItems =
+    user?.role === "ADMIN"
+      ? [...baseNavItems, ...allUsersNavItems, ...adminNavItems]
+      : [...baseNavItems, ...allUsersNavItems];
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,7 +52,7 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
         display: "flex",
         flexDirection: "column",
         flexShrink: 0,
-        padding: '5px'
+        padding: "5px",
       }}
     >
       <Stack gap={0} p="sm">
@@ -73,7 +70,7 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
                 padding: "8px",
                 borderRadius: "4px",
                 cursor: "pointer",
-                backgroundColor: isActive ? 'oklch(71.5% 0.143 215.221 / 0.2)' : "transparent",
+                backgroundColor: isActive ? "oklch(71.5% 0.143 215.221 / 0.2)" : "transparent",
                 color: isActive ? "oklch(71.5% 0.143 215.221)" : "#333",
               }}
             >
@@ -84,7 +81,17 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
         })}
       </Stack>
 
-      <Box style={{ marginTop: 'auto', pt: 12, pb: 16, px: 16, borderTop: '1px solid #e0e0e0', width: 200 }}>
+      <Box
+        style={{
+          marginTop: "auto",
+          padding: '5px 5px 5px 0',
+          borderTop: "1px solid #e0e0e0",
+          width: 200,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
         {user && (
           <Text size="xs" c="dimmed" mb={8} mt={8}>
             {user.email}
@@ -92,11 +99,23 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
         )}
         <Button
           variant="subtle"
+          color="oklch(71.5% 0.143 215.221)"
+          size="xs"
+          radius="sm"
+          style={{
+            width: "90%",
+          }}
+          onClick={handleSignOut}
+        >
+          Cerrar sesión
+        </Button>
+        {/* <Button
+          variant="subtle"
           size="xs"
           style={{
             color: 'oklch(71.5% 0.143 215.221)',
             fontWeight: 500,
-            width: '95%',
+            width: '90%',
           }}
           styles={{
             root: {
@@ -108,7 +127,7 @@ export function Sidebar({ onNavigate, isDrawer }: SidebarProps) {
           onClick={handleSignOut}
         >
           Cerrar sesión
-        </Button>
+        </Button> */}
       </Box>
     </Box>
   );

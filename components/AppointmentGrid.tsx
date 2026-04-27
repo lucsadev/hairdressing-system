@@ -35,7 +35,7 @@ import {
   BlockedSlot,
 } from "@/store/appointmentStore";
 import { useAuthStore } from "@/store/authStore";
-import { toArgentinaDate, parseLocalTime } from "@/store/dateUtils";
+import { toArgentinaDate, parseLocalTime, formatShortLocalDate, addDays } from "@/store/dateUtils";
 import { database } from "@/lib/insforge";
 
 dayjs.locale(es);
@@ -409,9 +409,11 @@ function AppointmentBlock({
 
 interface GridCellProps {
   staff: Staff;
+  allStaff: Staff[];
   appointments: Appointment[];
   blockedSlots: BlockedSlot[];
   selectedDate: Date;
+  isMobile: boolean;
   onDrop?: (e: React.DragEvent, staffId: string, timeSlot: string) => void;
   onTouchDrop: (
     appointmentId: string,
@@ -449,9 +451,11 @@ interface GridCellProps {
 
 function GridCell({
   staff,
+  allStaff,
   appointments,
   blockedSlots,
   selectedDate,
+  isMobile,
   onDrop,
   onTouchDrop,
   onDragStart,
@@ -537,16 +541,59 @@ function GridCell({
       <Box
         style={{
           height: 50,
-          padding: 10,
+          padding: 0,
           backgroundColor: staff.color + "20",
           fontWeight: 600,
           borderBottom: "1px solid #e0e0e0",
           textAlign: "center",
         }}
       >
-        <Text fw={600} style={{ color: staff.color }}>
-          {staff.name}
-        </Text>
+        {isMobile ? (
+          <Box
+            style={{
+              height: 50,
+              backgroundColor: staff.color + "20",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <NativeSelect
+              value={staff.id}
+              onChange={(e) =>
+                useAppointmentStore.getState().setSelectedStaffId(e.target.value)
+              }
+              style={{
+                width: "100%",
+                height: "100%",
+                fontSize: 12,
+                fontWeight: 600,
+                color: staff.color,
+                borderRadius: 0,
+                border: "none",
+                backgroundColor: "transparent",
+                textAlign: "center",
+                cursor: "pointer",
+                padding: "0 8px",
+              }}
+              styles={{
+                input: {
+                  backgroundColor: "transparent",
+                  border: "none",
+                  color: staff.color,
+                  fontWeight: 600,
+                  textAlign: "center",
+                  height: 50,
+                  padding: "0 8px",
+                },
+              }}
+              data={allStaff.map((s) => ({ value: s.id, label: s.name }))}
+            />
+          </Box>
+        ) : (
+          <Text fw={600} style={{ color: staff.color }}>
+            {staff.name}
+          </Text>
+        )}
       </Box>
       <Box
         style={{
@@ -1886,7 +1933,7 @@ export function AppointmentGrid() {
 
   return (
     <Box style={{ padding: isClient && isMobile ? 8 : 16 }}>
-      {/* Indicador de staff seleccionado en móvil - fijo, no hace scroll */}
+      {/* Selector de fecha en móvil - fijo en la parte superior de la grilla */}
       {isClient && isMobile && (
         <Box
           style={{
@@ -1899,37 +1946,49 @@ export function AppointmentGrid() {
             zIndex: 100,
             padding: "4px 8px",
             borderBottom: "1px solid #e0e0e0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
           }}
         >
-          {/* Native select for mobile - works better with touch */}
-          <NativeSelect
-            value={effectiveStaffId || ""}
-            onChange={(e) =>
-              useAppointmentStore.getState().setSelectedStaffId(e.target.value)
-            }
-            style={{
-              width: "100%",
-              maxWidth: 220,
-              fontSize: 12,
-              padding: "6px 8px",
-              borderRadius: 4,
-              border: "1px solid #ced4da",
-              backgroundColor: "#fff",
-              textAlign: "center",
-              margin: "0 auto",
-              touchAction: "manipulation",
-              pointerEvents: "auto",
-              position: "relative",
-              zIndex: 1000,
+          <ActionIcon
+            variant="default"
+            size="xs"
+            onClick={() => {
+              const current = useAppointmentStore.getState().selectedDate;
+              const newDate = addDays(current, -1);
+              useAppointmentStore.getState().setSelectedDate(newDate);
             }}
-            disabled={!isClient || staff.length === 0}
           >
-            {staff.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </NativeSelect>
+            ←
+          </ActionIcon>
+          <Text size="xxs" fw={500} style={{ minWidth: 55, textAlign: "center" }}>
+            {formatShortLocalDate(selectedDate)}
+          </Text>
+          <ActionIcon
+            variant="default"
+            size="xs"
+            onClick={() => {
+              const current = useAppointmentStore.getState().selectedDate;
+              const newDate = addDays(current, 1);
+              useAppointmentStore.getState().setSelectedDate(newDate);
+            }}
+          >
+            →
+          </ActionIcon>
+          <Button
+            variant="subtle"
+            size="xxs"
+            onClick={() => {
+              const nowArgentina = new Date();
+              nowArgentina.setHours(0, 0, 0, 0);
+              useAppointmentStore.getState().setSelectedDate(nowArgentina);
+            }}
+            style={{ padding: "0 4px" }}
+          >
+            Hoy
+          </Button>
         </Box>
       )}
 
@@ -1982,9 +2041,11 @@ export function AppointmentGrid() {
             <GridCell
               key={s.id}
               staff={s}
+              allStaff={staff}
               appointments={appointments}
               blockedSlots={blockedSlots}
               selectedDate={selectedDate}
+              isMobile={isClient && isMobile}
               onDrop={handleCellDrop}
               onTouchDrop={handleTouchDrop}
               onDragStart={handleDragStart}

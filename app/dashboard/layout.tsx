@@ -8,7 +8,7 @@ import { IconPlus } from '@tabler/icons-react'
 import { Sidebar } from '@/components/Sidebar'
 import { useAuthStore } from '@/store/authStore'
 import { useAppointmentStore } from '@/store/appointmentStore'
-import { formatFullLocalDate, formatShortLocalDate, addDays } from '@/store/dateUtils'
+import { formatFullLocalDate, addDays } from '@/store/dateUtils'
 
 export default function DashboardLayout({
   children,
@@ -90,25 +90,25 @@ export default function DashboardLayout({
       >
         <Group gap={isClient && isMobile ? "xs" : "sm"}>
           <Image src="/logo.png" w={isClient && isMobile ? 28 : 85} h={isClient && isMobile ? 24 : 68} radius="xl" alt="Logo" style={{overflow:'hidden'}} />
-          <Text size={isClient && isMobile ? "xs" : "lg"} fw={700} style={{ fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
+          <Text size="lg" fw={700} style={{ fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
             <span style={{ color: '#000' }}>Peluquería </span>
             <span style={{ color: 'oklch(71.5% 0.143 215.221)' }}>Krear</span>
           </Text>
         </Group>
-        <Box style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: isClient && isMobile ? 2 : 4 }}>
-          <Group gap={isClient && isMobile ? 1 : "xs"}>
-            <ActionIcon variant="default" size={isClient && isMobile ? "xs" : "sm"} onClick={handlePrevDay}>←</ActionIcon>
-            <Text size={isClient && isMobile ? "xxs" : "sm"} fw={500} style={{ minWidth: isClient && isMobile ? 55 : 100, textAlign: 'center' }}>
-              {isClient && isMobile 
-                ? formatShortLocalDate(selectedDate)
-                : formatFullLocalDate(selectedDate)
-              }
-            </Text>
-            <ActionIcon variant="default" size={isClient && isMobile ? "xs" : "sm"} onClick={handleNextDay}>→</ActionIcon>
-            <Button variant="subtle" size={isClient && isMobile ? "xxs" : "xs"} onClick={handleToday}>
-              Hoy
-            </Button>
-          </Group>
+        <Box style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Solo mostrar selector de fecha en desktop, en mobile está en AppointmentGrid */}
+          {(!isClient || !isMobile) && (
+            <Group gap="xs">
+              <ActionIcon variant="default" size="sm" onClick={handlePrevDay}>←</ActionIcon>
+              <Text size="sm" fw={500} style={{ minWidth: 100, textAlign: 'center' }}>
+                {formatFullLocalDate(selectedDate)}
+              </Text>
+              <ActionIcon variant="default" size="sm" onClick={handleNextDay}>→</ActionIcon>
+              <Button variant="subtle" size="xs" onClick={handleToday}>
+                Hoy
+              </Button>
+            </Group>
+          )}
         </Box>
       </Box>
 
