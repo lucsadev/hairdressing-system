@@ -559,9 +559,12 @@ function GridCell({
           >
             <NativeSelect
               value={staff.id}
-              onChange={(e) =>
-                useAppointmentStore.getState().setSelectedStaffId(e.target.value)
-              }
+              onChange={(e) => {
+                useAppointmentStore.getState().setSelectedStaffId(e.target.value);
+                if (typeof window !== "undefined") {
+                  localStorage.setItem("krear_selected_staff", e.target.value);
+                }
+              }}
               style={{
                 width: "100%",
                 height: "100%",
@@ -1090,10 +1093,15 @@ export function AppointmentGrid() {
     setIsClient(true);
   }, []);
 
-  // Sincronizar selectedStaffId cuando staff carga en móvil
+  // Sincronizar selectedStaffId cuando staff carga en móvil - leer del localStorage
   useEffect(() => {
-    if (isClient && isMobile && staff.length > 0 && !selectedStaffId) {
-      useAppointmentStore.getState().setSelectedStaffId(staff[0].id);
+    if (isClient && isMobile && staff.length > 0) {
+      const savedStaffId = localStorage.getItem("krear_selected_staff");
+      if (savedStaffId && staff.some((s) => s.id === savedStaffId)) {
+        useAppointmentStore.getState().setSelectedStaffId(savedStaffId);
+      } else if (!selectedStaffId) {
+        useAppointmentStore.getState().setSelectedStaffId(staff[0].id);
+      }
     }
   }, [isClient, isMobile, staff.length, selectedStaffId]);
 

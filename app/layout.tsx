@@ -2,7 +2,7 @@ import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
-import type { Metadata } from 'Next'
+import type { Metadata } from 'next'
 import { AuthProvider } from './providers'
 
 export const metadata: Metadata = {
