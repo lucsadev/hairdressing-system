@@ -1,0 +1,209 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Box, Table, TextInput, NumberInput, Button, Group, Title, Text, ActionIcon, Modal, Stack, ColorInput } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
+import { useDisclosure } from '@mantine/hooks'
+import { database } from '@/lib/insforge'
+import dayjs from 'dayjs'
+import { IconPlus } from '@tabler/icons-react'
+
+interface Service {
+  id: string
+  name: string
+  color: string
+  duration_minutes: number
+  cash: number
+  card: number
+  is_active: boolean
+}
+
+export function ServicesTable() {
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading] = useState(true)
+  const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
+  const [editingService, setEditingService] = useState<Service | null>(null)
+  const isMobile = useMediaQuery('(max-width: 500px)')
+  const [isClient, setIsClient] = useState(false)
+  
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  
+  const [form, setForm] = useState({
+    name: '',
+    color: 'oklch(71.5% 0.143 215.221)',
+    duration_minutes: 30,
+    cash: 0,
+    card: 0
+  })
+
+  const fetchServices = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await database
+        .from('services')
+        .select('*')
+        .order('name')
+      
+      if (!error && data) {
+        setServices(data)
+      }
+    } catch (err) {
+      console.error('Error fetching services:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchServices()
+  }, [])
+
+  const handleOpenNew = () => {
+    setEditingService(null)
+    setForm({ name: '', color: '#1971c2', duration_minutes: 30, cash: 0, card: 0 })
+    openModal()
+  }
+
+  const handleOpenEdit = (service: Service) => {
+    setEditingService(service)
+    setForm({
+      name: service.name,
+      color: service.color,
+      duration_minutes: service.duration_minutes,
+      cash: service.cash,
+      card: service.card
+    })
+    openModal()
+  }
+
+  const handleSave = async () => {
+    if (!form.name) return
+
+    try {
+      if (editingService) {
+        await database
+          .from('services')
+          .update(form)
+          .eq('id', editingService.id)
+      } else {
+        await database
+          .from('services')
+          .insert([{ ...form, is_active: true }])
+      }
+      closeModal()
+      fetchServices()
+    } catch (err) {
+      console.error('Error saving service:', err)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await database
+        .from('services')
+        .update({ is_active: false })
+        .eq('id', id)
+      fetchServices()
+    } catch (err) {
+      console.error('Error deleting service:', err)
+    }
+  }
+
+  return (
+    <Box p="md">
+      <Group justify="space-between" mb="md" align="center">
+        <Title order={2} style={isClient && isMobile ? { flex: 1, textAlign: 'center' } : {}}>Servicios</Title>
+        <ActionIcon
+                variant="filled"
+                color="cyan"
+                size="lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenNew();
+                }}
+                title="Agregar nuevo Staff"
+                style={{ opacity: 0.5}}
+              >
+                <IconPlus size={16} />
+              </ActionIcon>
+      </Group>
+
+      <Table striped highlightOnHover>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Color</Table.Th>
+              <Table.Th>Nombre</Table.Th>
+              <Table.Th>Efectivo</Table.Th>
+              {!isClient || !isMobile ? <Table.Th>Duración</Table.Th> : null}
+              {!isClient || !isMobile ? <Table.Th>Tarjeta</Table.Th> : null}
+              <Table.Th>Acciones</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {services.map(service => (
+              <Table.Tr key={service.id}>
+                <Table.Td>
+                  <Box style={{ width: 20, height: 20, backgroundColor: service.color, borderRadius: 4 }} />
+                </Table.Td>
+                <Table.Td>{service.name}</Table.Td>
+                <Table.Td>${service.cash?.toLocaleString() || 0}</Table.Td>
+                {!isClient || !isMobile ? <Table.Td>{service.duration_minutes} min</Table.Td> : null}
+                {!isClient || !isMobile ? <Table.Td>${service.card?.toLocaleString() || 0}</Table.Td> : null}
+                <Table.Td>
+                  <Group gap="xs">
+                    <ActionIcon variant="subtle" onClick={() => handleOpenEdit(service)}>
+                      ✏️
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(service.id)}>
+                      🗑️
+                    </ActionIcon>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+
+      <Modal opened={modalOpened} onClose={closeModal} title={editingService ? 'Editar Servicio' : 'Nuevo Servicio'} zIndex={1100}>
+        <Stack>
+          <TextInput
+            label="Nombre"
+            required
+            value={form.name}
+            onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
+          />
+          <ColorInput
+            label="Color"
+            value={form.color}
+            onChange={(value) => setForm(prev => ({ ...prev, color: value }))}
+          />
+          <NumberInput
+            label="Duración (minutos)"
+            value={form.duration_minutes}
+            onChange={(value) => setForm(prev => ({ ...prev, duration_minutes: Number(value) }))}
+          />
+          <NumberInput
+            label="Efectivo"
+            value={form.cash}
+            onChange={(value) => setForm(prev => ({ ...prev, cash: Number(value) }))}
+          />
+          <NumberInput
+            label="Tarjeta/transferencia"
+            value={form.card}
+            onChange={(value) => setForm(prev => ({ ...prev, card: Number(value) }))}
+          />
+          <Group grow>
+            <Button variant="outline" style={{ opacity: 0.5 }} onClick={closeModal}>
+              Cancelar
+            </Button>
+            <Button style={{ opacity: 0.5 }} onClick={handleSave}>
+              Guardar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </Box>
+  )
+}

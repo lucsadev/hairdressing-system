@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.2.5",
+    "@tabler/icons-react": "^3.32.0",
+    "@mantine/core": "^9.0.2",
+    "@mantine/hooks": "^9.0.2",
+    "@mantine/notifications": "^9.0.2",
+    "dayjs": "^1.11.20",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@types/node": "^20",
