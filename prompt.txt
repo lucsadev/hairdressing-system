@@ -1,8 +1,0 @@
-Crea con InsForge todo lo necesario para añadir autenticación a mi proyecto web llamado Peluquería Krear, una aplicación para llevar los turno. Necesito, que sea una cuadricula ce celdas con Mantine DataTable v8.3.13, que los turnos puedan ocupar varias celdas, que se puedan mover con arrastrar y soltar y el turno se muestre en la cuadricula según el color del servicio en forma de recuadro pero que no ocupe el 100% de las celdas seleccionadas, inicio de sesión y registro de usuarios con una implementación lista para usar en la web. Configura el backend, la base de datos y los endpoints necesarios para soportar el flujo completo de autenticación.
-
-stack:
-
-Mantine V8.3.18 para los estilos, hooks form dates notifications dropzone modals
-dayjs para el manejo de fechas
-Mantine DataTable para la cuadricula
-Zustand para los estados

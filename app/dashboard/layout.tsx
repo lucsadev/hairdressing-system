@@ -79,19 +79,28 @@ export default function DashboardLayout({
       )}
       <Box
         style={{
-          height: isClient && isMobile ? 40 : 50,
+          height: isClient && isMobile ? 40 : 70,
           backgroundColor: '#fff',
           borderBottom: '1px solid #e0e0e0',
           display: 'flex',
           alignItems: 'center',
           padding: isClient && isMobile ? '0 8px' : '0 12px',
           flexShrink: 0,
+          overflow: 'hidden'
         }}
       >
         <Group gap={isClient && isMobile ? "xs" : "sm"}>
           <Image src="/logo.png" w={isClient && isMobile ? 28 : 85} h={isClient && isMobile ? 24 : 68} radius="xl" alt="Logo" style={{overflow:'hidden'}} />
-          <Text size="lg" fw={700} style={{ fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>
-            <span style={{ color: '#000' }}>Peluquería </span>
+          <Text
+            size={isClient && isMobile ? "xl" : "60px"}
+            fw={400}
+            style={{
+              fontFamily: '"Imperial Script", cursive',
+              letterSpacing: '1px',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.15)'
+            }}
+          >
+            <span style={{ color: '#000', fontSize: '0.7em' }}>Peluquería </span>
             <span style={{ color: 'oklch(71.5% 0.143 215.221)' }}>Krear</span>
           </Text>
         </Group>

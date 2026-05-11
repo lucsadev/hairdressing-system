@@ -3,7 +3,9 @@
 import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useAppointmentStore } from '@/store/appointmentStore'
-import { realtime } from '@/lib/insforge'
+import { realtime, hasStoredCredentials, reauthenticate } from '@/lib/insforge'
+
+const TOKEN_REFRESH_INTERVAL = 5 * 60 * 1000 // 5 minutes
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { initAuth, initialized } = useAuthStore()
@@ -11,6 +13,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Helper to get current selectedDate - avoids stale closure issue
   const getCurrentDate = () => useAppointmentStore.getState().selectedDate
+
+  // Auto-refresh token every 5 minutes to keep session alive
+  useEffect(() => {
+    const refreshToken = async () => {
+      if (hasStoredCredentials()) {
+        try {
+          await reauthenticate()
+        } catch (err) {
+          console.error('[AuthProvider] Token refresh failed:', err)
+        }
+      }
+    }
+
+    // Refresh token every 5 minutes
+    const interval = setInterval(refreshToken, TOKEN_REFRESH_INTERVAL)
+
+    return () => clearInterval(interval)
+  }, [initialized])
 
   useEffect(() => {
     initAuth()

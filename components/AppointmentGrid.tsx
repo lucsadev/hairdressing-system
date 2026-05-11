@@ -33,7 +33,9 @@ import {
   Appointment,
   Staff,
   BlockedSlot,
+  Service,
 } from "@/store/appointmentStore";
+import { TicketModal } from "./TicketModal";
 import { useAuthStore } from "@/store/authStore";
 import { toArgentinaDate, parseLocalTime, formatShortLocalDate, addDays } from "@/store/dateUtils";
 import { database } from "@/lib/insforge";
@@ -51,53 +53,30 @@ function withOpacity(color: string, opacity: number = 0.5): string {
 
 const TIME_SLOTS = [
   "09:00",
-  "09:15",
   "09:30",
-  "09:45",
   "10:00",
-  "10:15",
   "10:30",
-  "10:45",
   "11:00",
-  "11:15",
   "11:30",
-  "11:45",
   "12:00",
-  "12:15",
   "12:30",
-  "12:45",
   "13:00",
-  "13:15",
   "13:30",
-  "13:45",
   "14:00",
-  "14:15",
   "14:30",
-  "14:45",
   "15:00",
-  "15:15",
   "15:30",
-  "15:45",
   "16:00",
-  "16:15",
   "16:30",
-  "16:45",
   "17:00",
-  "17:15",
   "17:30",
-  "17:45",
   "18:00",
-  "18:15",
   "18:30",
-  "18:45",
   "19:00",
-  "19:15",
   "19:30",
-  "19:45",
   "20:00",
-  "20:15",
   "20:30",
-  "20:45",
+  "21:00",
 ];
 
 interface AppointmentBlockProps {
@@ -151,9 +130,9 @@ function AppointmentBlock({
   const startMinute = startTime.minute();
   const durationMinutes = endTime.diff(startTime, "minute");
 
-  const heightPercent = (durationMinutes / 720) * 100;
+  const heightPercent = (durationMinutes / 750) * 100;
 
-  const topPercent = (((startHour - 9) * 60 + startMinute) / 720) * 100;
+  const topPercent = (((startHour - 9) * 60 + startMinute) / 750) * 100;
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragging(true);
@@ -545,13 +524,16 @@ function GridCell({
           backgroundColor: staff.color + "20",
           fontWeight: 600,
           borderBottom: "1px solid #e0e0e0",
-          textAlign: "center",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {isMobile ? (
           <Box
             style={{
               height: 50,
+              width: '100%',
               backgroundColor: staff.color + "20",
               display: "flex",
               alignItems: "center",
@@ -567,7 +549,7 @@ function GridCell({
               }}
               style={{
                 width: "100%",
-                height: "100%",
+                height: 50,
                 fontSize: 12,
                 fontWeight: 600,
                 color: staff.color,
@@ -580,6 +562,7 @@ function GridCell({
               }}
               styles={{
                 input: {
+                  width: '100%',
                   backgroundColor: "transparent",
                   border: "none",
                   color: staff.color,
@@ -593,7 +576,7 @@ function GridCell({
             />
           </Box>
         ) : (
-          <Text fw={600} style={{ color: staff.color }}>
+          <Text fw={600} style={{ color: staff.color, textAlign: 'center', width: '100%' }}>
             {staff.name}
           </Text>
         )}
@@ -601,7 +584,7 @@ function GridCell({
       <Box
         style={{
           position: "relative",
-          height: 1200,
+          height: 1000,
           backgroundColor: isOver ? "#f0f7ff" : "#fff",
         }}
         onDragOver={handleOuterDragOver}
@@ -629,7 +612,7 @@ function GridCell({
               data-time-slot={time}
               data-staff-id={staff.id}
               style={{
-                height: 25,
+                height: 40,
                 borderBottom: "1px solid #e0e0e0",
                 backgroundColor: isBlocked
                   ? "transparent" // Will be covered by blocked slot
@@ -660,8 +643,8 @@ function GridCell({
           const startMinute = startTime.minute();
           const durationMinutes = endTime.diff(startTime, "minute");
 
-          const heightPercent = (durationMinutes / 720) * 100;
-          const topPercent = (((startHour - 9) * 60 + startMinute) / 720) * 100;
+          const heightPercent = (durationMinutes / 750) * 100;
+          const topPercent = (((startHour - 9) * 60 + startMinute) / 750) * 100;
 
           return (
             <Box
@@ -806,7 +789,7 @@ function GridCell({
               style={{ position: "fixed", inset: 0, zIndex: 100, touchAction: "none" }}
               onPointerMove={(e: React.PointerEvent) => {
                 const deltaY = e.clientY - resizingBlockedSlot.startY;
-                const deltaMinutes = Math.round(deltaY / (1200 / 720));
+                const deltaMinutes = Math.round(deltaY / (1000 / 720));
 
                 let newStart = dayjs(resizingBlockedSlot.originalStart);
                 let newEnd = dayjs(resizingBlockedSlot.originalEnd);
@@ -830,7 +813,7 @@ function GridCell({
               }}
               onPointerUp={(e: React.PointerEvent) => {
                 const deltaY = e.clientY - resizingBlockedSlot.startY;
-                const deltaMinutes = Math.round(deltaY / (1200 / 720));
+                const deltaMinutes = Math.round(deltaY / (1000 / 720));
 
                 let newStart = dayjs(resizingBlockedSlot.originalStart);
                 let newEnd = dayjs(resizingBlockedSlot.originalEnd);
@@ -865,7 +848,7 @@ function GridCell({
                 const edge = resizingBlockedSlot?.edge ?? (window as any).__blockedSlotResizeEdge ?? 'bottom';
 
                 const deltaY = touch.clientY - startY;
-                const deltaMinutes = Math.round(deltaY / (1200 / 720));
+                const deltaMinutes = Math.round(deltaY / (1000 / 720));
 
                 let newStart = dayjs(originalStart);
                 let newEnd = dayjs(originalEnd);
@@ -892,7 +875,7 @@ function GridCell({
                 const id = resizingBlockedSlot?.id ?? (window as any).__blockedSlotResizeId ?? '';
 
                 const deltaY = touch.clientY - startY;
-                const deltaMinutes = Math.round(deltaY / (1200 / 720));
+                const deltaMinutes = Math.round(deltaY / (1000 / 720));
 
                 let newStart = dayjs(originalStart);
                 let newEnd = dayjs(originalEnd);
@@ -1070,6 +1053,7 @@ export function AppointmentGrid() {
     staff,
     clients,
     blockedSlots,
+    tickets,
     selectedDate,
     selectedStaffId,
     fetchAppointments,
@@ -1077,6 +1061,7 @@ export function AppointmentGrid() {
     fetchStaff,
     fetchClients,
     fetchBlockedSlots,
+    fetchTickets,
     createBlockedSlot,
     deleteBlockedSlot,
     createAppointment,
@@ -1125,9 +1110,12 @@ export function AppointmentGrid() {
     clientModalOpened,
     { open: openClientModal, close: closeClientModal },
   ] = useDisclosure(false);
+  const [ticketModalOpened, { open: openTicketModal, close: closeTicketModal }] =
+    useDisclosure(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingAppointment, setEditingAppointment] =
     useState<Appointment | null>(null);
+  const [ticketService, setTicketService] = useState<Service | null>(null);
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
@@ -1168,6 +1156,9 @@ export function AppointmentGrid() {
   );
   const [justResized, setJustResized] = useState(false);
 
+  // Track appointments that have tickets created
+  const [appointmentsWithTickets, setAppointmentsWithTickets] = useState<Set<string>>(new Set());
+
   // Ref for appointments to avoid stale closures
   const appointmentsRef = useRef(appointments);
   useEffect(() => {
@@ -1207,6 +1198,7 @@ export function AppointmentGrid() {
       fetchClients();
       fetchAppointments(selectedDate);
       fetchBlockedSlots(selectedDate);
+      fetchTickets();
     }
   }, [user, selectedDate]);
 
@@ -1225,8 +1217,8 @@ export function AppointmentGrid() {
     const endHours = Math.floor(totalMinutes / 60);
     const endMinutes = totalMinutes % 60;
 
-    // Handle case where end time goes to next day (cap at 20:45)
-    const finalTime = `${String(Math.min(endHours, 20)).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
+    // Handle case where end time goes to next day (cap at 21:00)
+    const finalTime = `${String(Math.min(endHours, 21)).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
     return finalTime;
   };
 
@@ -1308,7 +1300,7 @@ export function AppointmentGrid() {
         return;
 
       const deltaY = clientY - resizeStartYRef.current;
-      const deltaMinutes = Math.round(deltaY / (1200 / 720)); // 1200px = 12 hours = 720 minutes
+      const deltaMinutes = Math.round(deltaY / (1000 / 720)); // 1000px = 12 hours = 720 minutes
 
       let newStartTime = new Date(resizeOriginalStartRef.current);
       let newEndTime = new Date(resizeOriginalEndRef.current);
@@ -1722,6 +1714,12 @@ export function AppointmentGrid() {
     openEditModal();
   };
 
+  // Handle when ticket is created from the ticket modal
+  const handleTicketCreated = (appointmentId: string) => {
+    setAppointmentsWithTickets(prev => new Set(prev).add(appointmentId))
+    closeEditModal();
+  };
+
   const isAppointmentInPast = (): boolean => {
     const nowArgentina = toArgentinaDate(new Date());
     const selectedDateParsed = dayjs.utc(selectedDate);
@@ -2025,16 +2023,19 @@ export function AppointmentGrid() {
             >
               Hora
             </Box>
-            <Box style={{ height: 1200 }}>
+            <Box style={{ height: 750 }}>
               {TIME_SLOTS.map((time) => (
                 <Box
                   key={time}
                   style={{
-                    height: 25,
+                    height: 40,
                     borderBottom: "1px solid #e0e0e0",
-                    padding: "2px 8px",
-                    fontSize: 10,
-                    color: "#666",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: "#333",
                   }}
                   onDragOver={(e) => {
                     e.dataTransfer.setData("targetTimeSlot", time);
@@ -2128,6 +2129,7 @@ export function AppointmentGrid() {
               setNewAppointment((prev) => ({
                 ...prev,
                 service_id: e.target.value,
+                end_time: calculateEndTime(prev.time, e.target.value),
               }))
             }
           />
@@ -2217,6 +2219,7 @@ export function AppointmentGrid() {
               setNewAppointment((prev) => ({
                 ...prev,
                 service_id: e.target.value,
+                end_time: calculateEndTime(prev.time, e.target.value),
               }))
             }
           />
@@ -2263,19 +2266,19 @@ export function AppointmentGrid() {
               setNewAppointment((prev) => ({ ...prev, notes: e.target.value }))
             }
           />
-          <Button
-            fullWidth
-            variant="outline"
-            onClick={() => {
-              notifications.show({
-                title: "Ticket",
-                message: "Generando ticket...",
-                color: "blue",
-              });
-            }}
-          >
-            Generar ticket
-          </Button>
+          {editingAppointment && !appointmentsWithTickets.has(editingAppointment.id) && !tickets.some(t => t.client_id === newAppointment.client_id && dayjs(t.created_at).format('YYYY-MM-DD') === dayjs(selectedDate).format('YYYY-MM-DD')) && (
+            <Button
+              fullWidth
+              variant="outline"
+              onClick={() => {
+                const service = services.find((s) => s.id === newAppointment.service_id) || null
+                setTicketService(service)
+                openTicketModal()
+              }}
+            >
+              Generar ticket
+            </Button>
+          )}
           <Group grow>
             <Button
               variant="outline"
@@ -2329,6 +2332,19 @@ export function AppointmentGrid() {
           </Button>
         </Stack>
       </Modal>
+
+      {/* Ticket Modal */}
+      <TicketModal
+        opened={ticketModalOpened}
+        onClose={closeTicketModal}
+        clientId={newAppointment.client_id}
+        clientName={clients.find((c) => c.id === newAppointment.client_id)?.name || ''}
+        service={ticketService}
+        appointmentId={editingAppointment?.id}
+        appointments={appointments}
+        selectedDate={selectedDate}
+        onTicketCreated={handleTicketCreated}
+      />
     </Box>
   );
 }
