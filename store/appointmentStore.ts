@@ -40,6 +40,29 @@ export interface BlockedSlot {
   created_at: string
 }
 
+export interface Ticket {
+  id: string
+  client_id: string
+  appointment_id: string | null
+  payment_method: 'cash' | 'card'
+  total_amount: number
+  status: 'pending' | 'completed' | 'cancelled'
+  notes: string | null
+  created_at: string
+  updated_at: string
+  ticket_items?: TicketItem[]
+}
+
+export interface TicketItem {
+  id: string
+  ticket_id: string
+  service_id: string | null
+  unit_price: number
+  subtotal: number
+  is_extra: boolean
+  created_at: string
+}
+
 export interface Appointment {
   id: string
   user_id: string
@@ -62,6 +85,8 @@ interface AppointmentState {
   staff: Staff[]
   clients: Client[]
   blockedSlots: BlockedSlot[]
+  tickets: Ticket[]
+  ticketItems: TicketItem[]
   loading: boolean
   selectedDate: Date
   selectedStaffId: string | null // Para filtrar por staff en móvil
@@ -70,6 +95,10 @@ interface AppointmentState {
   fetchStaff: () => Promise<void>
   fetchClients: () => Promise<void>
   fetchBlockedSlots: (date: Date) => Promise<void>
+  fetchTickets: () => Promise<void>
+  createTicket: (data: { client_id: string; appointment_id?: string; payment_method: 'cash' | 'card'; notes?: string; items: Omit<TicketItem, 'id' | 'ticket_id' | 'created_at'>[] }) => Promise<{ error: string | null; ticketId: string | null }>
+  updateTicket: (id: string, data: Partial<Ticket>) => Promise<{ error: string | null }>
+  deleteTicket: (id: string) => Promise<{ error: string | null }>
   createAppointment: (data: Partial<Appointment>) => Promise<{ error: string | null }>
   updateAppointment: (id: string, data: Partial<Appointment>) => Promise<{ error: string | null }>
   deleteAppointment: (id: string) => Promise<{ error: string | null }>
@@ -92,6 +121,8 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
   staff: [],
   clients: [],
   blockedSlots: [],
+  tickets: [],
+  ticketItems: [],
   loading: false,
   // Always use midnight local time to avoid timezone issues
   selectedDate: new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0),
@@ -457,6 +488,108 @@ fetchAppointments: async (date: Date) => {
       return { error: null, clientId: insertedData?.[0]?.id || null }
     } catch (err: any) {
       return { error: err.message || 'Failed to create client', clientId: null }
+    }
+  },
+
+  fetchTickets: async () => {
+    try {
+      const { data, error } = await database
+        .from('tickets')
+        .select('*, ticket_items(*)')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching tickets:', error)
+        return
+      }
+
+      set({ tickets: data || [] })
+    } catch (err) {
+      console.error('Error fetching tickets:', err)
+    }
+  },
+
+  createTicket: async (data: { client_id: string; appointment_id?: string; payment_method: 'cash' | 'card'; notes?: string; items: Omit<TicketItem, 'id' | 'ticket_id' | 'created_at'>[] }) => {
+    try {
+      // Calculate total
+      const total = data.items.reduce((sum, item) => sum + item.subtotal, 0)
+
+      // Insert ticket
+      const { data: ticketData, error: ticketError } = await database
+        .from('tickets')
+        .insert([{
+          client_id: data.client_id,
+          appointment_id: data.appointment_id || null,
+          payment_method: data.payment_method,
+          total_amount: total,
+          status: 'pending',
+          notes: data.notes || null
+        }])
+        .select()
+        .single()
+
+      if (ticketError) {
+        return { error: ticketError.message, ticketId: null }
+      }
+
+      // Insert ticket items with the ticket_id
+      const ticketId = ticketData.id
+      const itemsWithTicketId = data.items.map(item => ({
+        ...item,
+        ticket_id: ticketId
+      }))
+
+      const { error: itemsError } = await database
+        .from('ticket_items')
+        .insert(itemsWithTicketId)
+
+      if (itemsError) {
+        // Rollback: delete the ticket
+        await database.from('tickets').delete().eq('id', ticketId)
+        return { error: itemsError.message, ticketId: null }
+      }
+
+      await get().fetchTickets()
+      return { error: null, ticketId }
+    } catch (err: any) {
+      return { error: err.message || 'Failed to create ticket', ticketId: null }
+    }
+  },
+
+  updateTicket: async (id: string, data: Partial<Ticket>) => {
+    try {
+      const updateData = { ...data, updated_at: new Date().toISOString() }
+      const { error } = await database
+        .from('tickets')
+        .update(updateData)
+        .eq('id', id)
+
+      if (error) {
+        return { error: error.message }
+      }
+
+      await get().fetchTickets()
+      return { error: null }
+    } catch (err: any) {
+      return { error: err.message || 'Failed to update ticket' }
+    }
+  },
+
+  deleteTicket: async (id: string) => {
+    try {
+      const { error } = await database
+        .from('tickets')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        return { error: error.message }
+      }
+
+      await get().fetchTickets()
+      return { error: null }
+    } catch (err: any) {
+      return { error: err.message || 'Failed to delete ticket' }
     }
   }
 }))

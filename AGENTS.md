@@ -93,7 +93,7 @@ Available documentation types:
 2. ✅ **Blocked Slots (New)**
    - Table: `blocked_slots` (staff_id, start_time, end_time, reason)
    - Right-click on grid cell opens context menu
-   - Options: 15 min, 30 min, 1 hour, resto del día
+   - Options: 30 min, 1 hour, resto del día (intervalo cambió a 30 min)
    - Blocked slots render as gray boxes with striped pattern (45°)
    - Resize handles to extend blocked range
    - Delete button to remove blocks
@@ -111,6 +111,40 @@ Available documentation types:
    - Create user flow: auth.signUp() → creates Auth user → inserts profile
    - Page: `/dashboard/usuarios`
    - Uses SegmentedControl for role selection (Usuario/Administrador)
+
+5. ✅ **Ticket Modal**
+   - Modal que se abre desde "Generar ticket" en edit turno
+   - Table dinámica con servicios del cliente activo
+   - Puede agregar items extra o gastos adicionales
+   - RadioGroup para seleccionar: Efectivo | Tarjeta/Transferencia
+   - Cálculo automático de subtotales y total
+   - Tabla `tickets` relacionada a `clients`
+   - Tabla `ticket_items` para items individuales
+
+6. ✅ **Time Slots Intervalo 30 min**
+   - TIME_SLOTS: 09:00 a 21:00 cada 30 minutos
+   - Grid height: 1000px (25 slots × 40px)
+   - Divisor de posicionamiento: 750 (match con altura del contenedor)
+   - 1 slot de 30 min = 40px (1.333px/min × 30min = 40px ✓)
+
+7. ✅ **Sidebar Hover Effects**
+   - Las opciones del sidebar tienen hover con transición suave de 150ms
+   - Usa estado local `hoveredHref` para tracking
+   - Color de hover: `oklch(71.5% 0.143 215.221 / 0.08)`
+
+8. ✅ **Ticket Button Visibility Fix**
+   - "Generar ticket" se oculta si el cliente ya tiene un ticket en esa fecha
+   - `fetchTickets()` agregado al AppointmentGrid useEffect (antes solo se llamaba en tickets page)
+   - Check inline: `tickets.some(t => t.client_id === clientId && dayjs(t.created_at).format('YYYY-MM-DD') === dayjs(selectedDate).format('YYYY-MM-DD'))`
+
+9. ✅ **Proveedores y Pedidos**
+   - Tabla `suppliers` (id, name, phone, address, balance)
+   - Tabla `orders` (id, supplier_id, description, amount, payment_method, status, pay)
+   - Página `/dashboard/suppliers` con CRUD completo
+   - Modal de pedidos por proveedor (agregar/eliminar pedidos, actualizar balance)
+   - Página `/dashboard/orders` con tabla de pedidos
+   - Filtros por estado y proveedor (al activar filtros = toda la DB, más reciente primero)
+   - Sin filtros = solo fecha activa
 
 ### Database Changes:
 
@@ -130,10 +164,55 @@ CREATE TABLE blocked_slots (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Tickets table (related to clients)
+CREATE TABLE tickets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  client_id UUID NOT NULL REFERENCES clients(id),
+  appointment_id UUID REFERENCES appointments(id),
+  payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'card')),
+  total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Ticket items (individual line items)
+CREATE TABLE ticket_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES services(id),
+  unit_price NUMERIC(10, 2) NOT NULL,
+  subtotal NUMERIC(10, 2) NOT NULL,
+  is_extra BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Suppliers table
+CREATE TABLE suppliers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT,
+  address TEXT,
+  balance NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Orders table (related to suppliers)
+CREATE TABLE orders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  supplier_id UUID NOT NULL REFERENCES suppliers(id),
+  description TEXT NOT NULL,
+  amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  payment_method TEXT CHECK (payment_method IN ('cash', 'card', 'transfer')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
+  pay BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- RLS disabled for internal app
-ALTER TABLE services DISABLE ROW LEVEL SECURITY;
-ALTER TABLE blocked_slots DISABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE suppliers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
 
 -- Profiles table
 CREATE TABLE profiles (
@@ -150,13 +229,17 @@ CREATE TABLE profiles (
 
 - `lib/insforge.ts` - SDK client with Proxy for dynamic auth
 - `app/providers.tsx` - Auth + Realtime setup
-- `store/appointmentStore.ts` - State management (appointments, services, staff, clients, blockedSlots)
-- `components/AppointmentGrid.tsx` - Calendar with drag/drop/resize/blocked slots
+- `store/appointmentStore.ts` - State management (appointments, services, staff, clients, blockedSlots, tickets)
+- `store/dateUtils.ts` - Date helpers
+- `components/AppointmentGrid.tsx` - Calendar with drag/drop/resize/blocked slots + ticket button
+- `components/TicketModal.tsx` - Modal para generar tickets con datatable dinámica
 - `components/ServicesTable.tsx` - Service CRUD (cash/card columns)
 - `components/StaffTable.tsx` - Staff CRUD
 - `components/ClientsTable.tsx` - Client CRUD
 - `components/UsuariosTable.tsx` - Users/Profiles CRUD
-- `store/dateUtils.ts` - Date helpers
+- `components/SuppliersTable.tsx` - Suppliers + Orders CRUD
+- `components/OrdersTable.tsx` - Orders listing page with filters
+- `components/Sidebar.tsx` - Navigation with hover effects
 
 ### RLS Policies:
 
@@ -167,6 +250,10 @@ CREATE TABLE profiles (
 -- clients: RLS disabled
 -- blocked_slots: RLS disabled
 -- profiles: RLS disabled
+-- tickets: RLS disabled
+-- ticket_items: RLS disabled
+-- suppliers: RLS disabled
+-- orders: RLS disabled
 ```
 
 ### Realtime Channels:
@@ -176,6 +263,7 @@ CREATE TABLE profiles (
 - staff, staff:%
 - blocked_slots
 - profiles
+- tickets (for future sync)
 
 ## Important Notes
 
@@ -206,3 +294,8 @@ CREATE TABLE profiles (
 4. **Resize handles modal opening**:
    - Problem: After resize, click event opens edit modal
    - Fix: Use pointerDownOnResizeHandle flag with setTimeout(50ms) delay to block click
+
+5. **Grid positioning misalignment**:
+   - Problem: Turnos se posicionaban fuera de las celdas con intervalo de 30 min
+   - Root cause: ConTAINER height (1250px), CELLS height (25px) y DIVISOR (720) no coincidían
+   - Fix: Contenedor 750px, celdas 30px, divisor 750 → todo alineado para 25 slots de 30 min (09:00-21:00)

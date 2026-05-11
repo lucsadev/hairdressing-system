@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { auth, setSessionToken, setAuthCookie, database, storeCredentials, clearCredentials, reauthenticate } from '@/lib/insforge'
+import { auth, setSessionToken, setAuthCookie, database, storeCredentials, clearCredentials, reauthenticate, hasStoredCredentials } from '@/lib/insforge'
 
 interface User {
   id: string
@@ -126,8 +126,18 @@ signIn: async (email: string, password: string) => {
       const { data: { user }, error } = await auth.getCurrentUser()
 
       if (error) {
-        console.error('getCurrentUser error:', error)
-        // Token might be expired - try to re-authenticate with stored credentials
+        // Check if it's a "no refresh token" error - normal for new visitors
+        const errorMsg = error?.message || String(error).replace(/^Error:\s*/, '')
+        const noRefreshToken = errorMsg.includes('No refresh token') || 
+                              errorMsg.includes('no refresh token')
+        
+        // If it's a "no refresh token" error with no stored credentials, this is a new visitor
+        if (noRefreshToken && !hasStoredCredentials()) {
+          set({ user: null, initialized: true, sessionExpired: false })
+          return
+        }
+        
+        // Otherwise try to re-authenticate with stored credentials
         const reauthed = await reauthenticate()
         if (reauthed) {
           // Re-fetch user after successful re-auth
@@ -143,8 +153,8 @@ signIn: async (email: string, password: string) => {
             return
           }
         }
-        // If re-auth failed, clear everything and signal session expired
-        console.log('[authStore] Session expired, user needs to re-login')
+        
+        // Session expired
         clearCredentials()
         setSessionToken(null)
         set({ user: null, initialized: true, sessionExpired: true })
