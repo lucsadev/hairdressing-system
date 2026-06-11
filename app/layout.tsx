@@ -7,7 +7,19 @@ import { AuthProvider } from './providers'
 
 export const metadata: Metadata = {
   title: 'Peluquería Krear - Gestión de Turnos',
-  description: 'Sistema de gestión de turnos para Peluquería Krear',
+  description: 'Sistema de gestión de turnos y caja para Peluquería Krear',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Krear',
+    statusBarStyle: 'default',
+  },
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+  themeColor: '#14b8a6',
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-touch-fullscreen': 'yes',
+  },
 }
 
 export default function RootLayout({
@@ -62,6 +74,21 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </MantineProvider>
+        <Script
+          id="register-sw"
+          strategy="lazyOnload"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(() => console.log('[PWA] Service Worker registrado'))
+                    .catch(err => console.error('[PWA] Error al registrar SW:', err))
+                })
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )

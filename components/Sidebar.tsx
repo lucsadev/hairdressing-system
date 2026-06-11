@@ -10,6 +10,8 @@ const adminNavItems = [
   { label: "Servicios", href: "/dashboard/services", icon: IconListDetails },
   { label: "Staff", href: "/dashboard/staff", icon: IconScissors },
   { label: "Usuarios", href: "/dashboard/users", icon: IconUser },
+  { label: "Caja", href: "/dashboard/cash-register", icon: IconCash },
+  { label: "Historial", href: "/dashboard/cash-history", icon: IconHistory },
 ];
 
 // Visible to all authenticated users (not protected but accessible)
