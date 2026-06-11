@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack, ColorInput } from '@mantine/core'
+import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
@@ -180,10 +180,19 @@ export function StaffTable() {
             value={form.address}
             onChange={(e) => setForm(prev => ({ ...prev, address: e.target.value }))}
           />
-          <ColorInput
+          <TextInput
             label="Color"
             value={form.color}
-            onChange={(value) => setForm(prev => ({ ...prev, color: value }))}
+            onChange={(e) => setForm(prev => ({ ...prev, color: e.target.value }))}
+            placeholder="#1971c2"
+            rightSection={
+              <input
+                type="color"
+                value={form.color}
+                onChange={(e) => setForm(prev => ({ ...prev, color: e.target.value }))}
+                style={{ width: 28, height: 28, padding: 0, border: 'none', cursor: 'pointer', background: 'none' }}
+              />
+            }
           />
           <Group grow>
             <Button variant="outline" style={{ opacity: 0.5 }} onClick={closeModal}>
