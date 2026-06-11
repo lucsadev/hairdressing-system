@@ -7,7 +7,6 @@ import { useDisclosure } from '@mantine/hooks'
 import { useAppointmentStore } from '@/store/appointmentStore'
 import { database } from '@/lib/insforge'
 import { IconPlus, IconFilter } from '@tabler/icons-react'
-import { EXPENSE_CATEGORIES } from '@/store/cashRegisterStore'
 import dayjs from 'dayjs'
 
 interface Supplier {
@@ -172,7 +171,6 @@ export function OrdersTable() {
 
     try {
       if (editingOrder) {
-        const wasPaid = editingOrder.pay
         await database
           .from('orders')
           .update({
@@ -183,23 +181,10 @@ export function OrdersTable() {
             pay: form.pay
           })
           .eq('id', editingOrder.id)
-
-        if (form.pay !== wasPaid) {
-          await syncExpense(
-            { ...editingOrder, ...form, created_at: editingOrder.created_at },
-            form.pay
-          )
-        }
       } else {
-        const { data } = await database
+        await database
           .from('orders')
           .insert([form])
-          .select()
-          .single()
-
-        if (form.pay && data) {
-          await syncExpense(data, true)
-        }
       }
       closeModal()
       fetchOrders()
@@ -210,10 +195,6 @@ export function OrdersTable() {
 
   const handleDelete = async (id: string) => {
     try {
-      const order = orders.find(o => o.id === id)
-      if (order?.pay) {
-        await syncExpense(order, false)
-      }
       await database
         .from('orders')
         .delete()
@@ -226,49 +207,14 @@ export function OrdersTable() {
 
   const handleToggleStatus = async (order: Order) => {
     const newStatus = order.status === 'paid' ? 'pending' : 'paid'
-    const newPay = newStatus === 'paid'
     try {
       await database
         .from('orders')
-        .update({ status: newStatus, pay: newPay })
+        .update({ status: newStatus, pay: newStatus === 'paid' })
         .eq('id', order.id)
-      await syncExpense(order, newPay)
       fetchOrders()
     } catch (err) {
       console.error('Error updating order status:', err)
-    }
-  }
-
-  const syncExpense = async (order: Order, paid: boolean) => {
-    try {
-      if (paid) {
-        const { data: existing } = await database
-          .from('expenses')
-          .select('id')
-          .eq('reference_type', 'order')
-          .eq('reference_id', order.id)
-          .single()
-
-        if (!existing) {
-          await database.from('expenses').insert([{
-            description: `Pedido: ${order.description}`,
-            amount: order.amount,
-            category: 'supplies',
-            payment_method: order.payment_method || 'cash',
-            date: order.created_at,
-            reference_type: 'order',
-            reference_id: order.id
-          }])
-        }
-      } else {
-        await database
-          .from('expenses')
-          .delete()
-          .eq('reference_type', 'order')
-          .eq('reference_id', order.id)
-      }
-    } catch (err) {
-      console.error('Error syncing expense for order:', err)
     }
   }
 

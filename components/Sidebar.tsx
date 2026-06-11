@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Box, Stack, Text, Button } from "@mantine/core";
-import { IconCalendar, IconReceipt, IconListDetails, IconScissors, IconUsers, IconUser, IconPackage, IconShoppingCart, IconCash, IconHistory } from "@tabler/icons-react";
+import { IconCalendar, IconReceipt, IconListDetails, IconScissors, IconUsers, IconUser, IconPackage, IconShoppingCart } from "@tabler/icons-react";
 import { useAuthStore } from "@/store/authStore";
 
 const adminNavItems = [
