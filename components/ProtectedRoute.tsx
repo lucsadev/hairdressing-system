@@ -14,7 +14,9 @@ interface ProtectedRouteProps {
 const ADMIN_ROUTES = [
   '/dashboard/users',
   '/dashboard/staff',
-  '/dashboard/services'
+  '/dashboard/services',
+  '/dashboard/cash-register',
+  '/dashboard/cash-history'
 ]
 
 export function ProtectedRoute({ 

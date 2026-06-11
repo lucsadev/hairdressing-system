@@ -61,6 +61,8 @@ export function TicketModal({
   // Ticket items
   const [items, setItems] = useState<TicketItemInput[]>([])
 
+  const isCompleted = mode === 'edit' && ticket?.status === 'completed'
+
   // Initialize items when modal opens
   useEffect(() => {
     if (!opened) return
@@ -281,6 +283,7 @@ export function TicketModal({
                     size="xs"
                     placeholder={item.is_extra ? 'Extra...' : undefined}
                     comboboxProps={{ withinPortal: false }}
+                    disabled={isCompleted}
                   />
                 </Table.Td>
                 <Table.Td>
@@ -293,6 +296,7 @@ export function TicketModal({
                     size="xs"
                     hideControls
                     styles={{ input: { width: 90 } }}
+                    disabled={isCompleted}
                   />
                 </Table.Td>
                 <Table.Td>
@@ -303,6 +307,7 @@ export function TicketModal({
                     color="red"
                     variant="subtle"
                     onClick={() => removeItem(item.id)}
+                    disabled={isCompleted}
                   >
                     <IconTrash size={16} />
                   </ActionIcon>
@@ -318,6 +323,7 @@ export function TicketModal({
           leftSection={<IconPlus size={16} />}
           onClick={addExtraItem}
           size="xs"
+          disabled={isCompleted}
         >
           Agregar extra / gasto
         </Button>
@@ -328,6 +334,7 @@ export function TicketModal({
           <Radio.Group
             value={paymentMethod}
             onChange={(val) => handlePaymentMethodChange(val as 'cash' | 'card')}
+            readOnly={isCompleted}
           >
             <Group>
               <Radio value="cash" label="Efectivo" />
@@ -361,22 +368,24 @@ export function TicketModal({
                 }}
                 size="sm"
               >
-                Marcar como Completado
+                Cobrar y marcar como completado
               </Button>
             )}
           </Box>
           <Group>
             <Button variant="outline" onClick={handleClose}>
-              Cancelar
+              {isCompleted ? 'Cerrar' : 'Cancelar'}
             </Button>
-            <Button
-              color="green"
-              onClick={handleSave}
-              loading={saving}
-              disabled={items.length === 0}
-            >
-              {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
-            </Button>
+            {!isCompleted && (
+              <Button
+                color="green"
+                onClick={handleSave}
+                loading={saving}
+                disabled={items.length === 0}
+              >
+                {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
+              </Button>
+            )}
           </Group>
         </Group>
       </Stack>

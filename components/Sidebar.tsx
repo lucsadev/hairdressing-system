@@ -3,13 +3,15 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Box, Stack, Text, Button } from "@mantine/core";
-import { IconCalendar, IconReceipt, IconListDetails, IconScissors, IconUsers, IconUser, IconPackage, IconShoppingCart } from "@tabler/icons-react";
+import { IconCalendar, IconReceipt, IconListDetails, IconScissors, IconUsers, IconUser, IconPackage, IconShoppingCart, IconCash, IconHistory } from "@tabler/icons-react";
 import { useAuthStore } from "@/store/authStore";
 
 const adminNavItems = [
   { label: "Servicios", href: "/dashboard/services", icon: IconListDetails },
   { label: "Staff", href: "/dashboard/staff", icon: IconScissors },
   { label: "Usuarios", href: "/dashboard/users", icon: IconUser },
+  { label: "Caja", href: "/dashboard/cash-register", icon: IconCash },
+  { label: "Historial", href: "/dashboard/cash-history", icon: IconHistory },
 ];
 
 // Visible to all authenticated users (not protected but accessible)

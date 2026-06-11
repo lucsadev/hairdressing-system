@@ -3,11 +3,24 @@ import '@mantine/notifications/styles.css'
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { AuthProvider } from './providers'
 
 export const metadata: Metadata = {
   title: 'Peluquería Krear - Gestión de Turnos',
-  description: 'Sistema de gestión de turnos para Peluquería Krear',
+  description: 'Sistema de gestión de turnos y caja para Peluquería Krear',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Krear',
+    statusBarStyle: 'default',
+  },
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+  themeColor: '#14b8a6',
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-touch-fullscreen': 'yes',
+  },
 }
 
 export default function RootLayout({
@@ -22,6 +35,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Imperial+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+        <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Krear" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="application-name" content="Krear" />
       </head>
       <body>
         <MantineProvider
@@ -62,6 +82,21 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </MantineProvider>
+        <Script
+          id="register-sw"
+          strategy="lazyOnload"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(() => console.log('[PWA] Service Worker registrado'))
+                    .catch(err => console.error('[PWA] Error al registrar SW:', err))
+                })
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   )
