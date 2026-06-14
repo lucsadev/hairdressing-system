@@ -249,7 +249,6 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
       const { data, error } = await database
         .from('services')
         .select('*')
-        .eq('is_active', true)
         .order('name')
       
       if (error) {
