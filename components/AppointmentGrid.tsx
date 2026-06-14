@@ -9,6 +9,7 @@ import {
   Button,
   Text,
   Modal,
+  Select,
   NativeSelect,
   Textarea,
   Stack,
@@ -196,7 +197,7 @@ function AppointmentBlock({
         left: 0,
         right: 0,
         height: `${Math.max(heightPercent, 4)}%`,
-        backgroundColor: withOpacity(color),
+        backgroundColor: color,
         borderRadius: 4,
         padding: 4,
         opacity: isDragging || isTouchDragging ? 0.5 : 1,
@@ -1884,7 +1885,8 @@ export function AppointmentGrid() {
   };
 
   const handleCreateClient = async () => {
-    if (!newClientName.trim()) {
+    const name = newClientName.trim().toUpperCase()
+    if (!name) {
       notifications.show({
         title: "Error",
         message: "El nombre del cliente es requerido",
@@ -1893,8 +1895,18 @@ export function AppointmentGrid() {
       return;
     }
 
+    const duplicate = clients.find(c => c.name.toUpperCase() === name)
+    if (duplicate) {
+      notifications.show({
+        title: "Cliente duplicado",
+        message: `Ya existe un cliente con el nombre "${name}"`,
+        color: "red",
+      });
+      return;
+    }
+
     const result = await createClient({
-      name: newClientName.trim(),
+      name,
       phone: newClientPhone.trim() || null,
       email: newClientEmail.trim() || null,
     });
@@ -2090,18 +2102,23 @@ export function AppointmentGrid() {
               Cliente
             </Text>
             <Group gap="xs">
-              <NativeSelect
+              <Select
                 required
-                data={[{value: '', label: 'Selecciona un cliente'}, ...clients.map((c) => ({ value: c.id, label: c.name }))]}
-                value={newAppointment.client_id}
-                onChange={(e) => {
-                  console.log('Client onChange - value:', e.target.value, 'clients:', clients);
+                searchable
+                clearable
+                nothingFoundMessage="Sin resultados"
+                placeholder="Buscar cliente..."
+                data={clients.map((c) => ({ value: c.id, label: c.name }))}
+                value={newAppointment.client_id || ''}
+                onChange={(val) => {
+                  console.log('Client onChange - value:', val, 'clients:', clients);
                   setNewAppointment((prev) => ({
                     ...prev,
-                    client_id: e.target.value,
+                    client_id: val || '',
                   }));
                 }}
                 style={{ flex: 1 }}
+                comboboxProps={{ zIndex: 1200 }}
               />
               <ActionIcon
                 variant="filled"
@@ -2117,58 +2134,68 @@ export function AppointmentGrid() {
               </ActionIcon>
             </Group>
           </Box>
-          <NativeSelect
+          <Select
             label="Servicio"
             required
-            data={[{value: '', label: 'Elije un servicio'}, ...services.map((s) => ({
+            searchable
+            nothingFoundMessage="Sin resultados"
+            data={services.map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
-            }))]}
-            value={newAppointment.service_id}
-            onChange={(e) =>
+            }))}
+            value={newAppointment.service_id || null}
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                service_id: e.target.value,
-                end_time: calculateEndTime(prev.time, e.target.value),
+                service_id: val || '',
+                end_time: calculateEndTime(prev.time, val || ''),
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Staff"
             required
+            searchable
+            nothingFoundMessage="Sin resultados"
             data={staff.map((s) => ({ value: s.id, label: s.name }))}
-            value={newAppointment.staff_id}
-            onChange={(e) => {
-              console.log('Staff onChange - value:', e.target.value, 'staff:', staff);
+            value={newAppointment.staff_id || null}
+            onChange={(val) => {
+              console.log('Staff onChange - value:', val, 'staff:', staff);
               setNewAppointment((prev) => ({
                 ...prev,
-                staff_id: e.target.value,
+                staff_id: val || '',
               }));
             }}
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Hora"
             required
+            searchable
             data={TIME_SLOTS.map((t) => ({ value: t, label: t }))}
             value={newAppointment.time}
-            onChange={(e) =>
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                time: e.target.value,
-                end_time: calculateEndTime(e.target.value, prev.service_id),
+                time: val || '',
+                end_time: calculateEndTime(val || '', prev.service_id),
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Fin de turno"
+            searchable
             data={TIME_SLOTS.map((t) => ({ value: t, label: t }))}
             value={newAppointment.end_time}
-            onChange={(e) =>
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                end_time: e.target.value,
+                end_time: val || '',
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
           <Textarea
             label="Notas"
@@ -2207,57 +2234,67 @@ export function AppointmentGrid() {
               {clients.find((c) => c.id === newAppointment.client_id)?.name}
             </Text>
           )}
-          <NativeSelect
+          <Select
             label="Servicio"
             required
+            searchable
+            nothingFoundMessage="Sin resultados"
             data={services.map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
             }))}
-            value={newAppointment.service_id}
-            onChange={(e) =>
+            value={newAppointment.service_id || null}
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                service_id: e.target.value,
-                end_time: calculateEndTime(prev.time, e.target.value),
+                service_id: val || '',
+                end_time: calculateEndTime(prev.time, val || ''),
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Staff"
             required
+            searchable
+            nothingFoundMessage="Sin resultados"
             data={staff.map((s) => ({ value: s.id, label: s.name }))}
-            value={newAppointment.staff_id}
-            onChange={(e) =>
+            value={newAppointment.staff_id || null}
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                staff_id: e.target.value,
+                staff_id: val || '',
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Hora"
             required
+            searchable
             data={TIME_SLOTS.map((t) => ({ value: t, label: t }))}
             value={newAppointment.time}
-            onChange={(e) =>
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                time: e.target.value,
-                end_time: calculateEndTime(e.target.value, prev.service_id),
+                time: val || '',
+                end_time: calculateEndTime(val || '', prev.service_id),
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
-          <NativeSelect
+          <Select
             label="Fin de turno"
+            searchable
             data={TIME_SLOTS.map((t) => ({ value: t, label: t }))}
             value={newAppointment.end_time}
-            onChange={(e) =>
+            onChange={(val) =>
               setNewAppointment((prev) => ({
                 ...prev,
-                end_time: e.target.value,
+                end_time: val || '',
               }))
             }
+            comboboxProps={{ zIndex: 1200 }}
           />
           <Textarea
             label="Notas"

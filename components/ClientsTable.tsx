@@ -1,22 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
 import { IconPlus } from '@tabler/icons-react'
-
-interface Client {
-  id: string
-  name: string
-  phone: string | null
-  email: string | null
-  created_at: string
-}
+import { useAppointmentStore, Client } from '@/store/appointmentStore'
 
 export function ClientsTable() {
-  const [clients, setClients] = useState<Client[]>([])
+  const clients = useAppointmentStore((s) => s.clients)
+  const fetchClients = useAppointmentStore((s) => s.fetchClients)
   const [loading, setLoading] = useState(true)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
@@ -33,27 +27,9 @@ export function ClientsTable() {
     email: ''
   })
 
-  const fetchClients = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await database
-        .from('clients')
-        .select('*')
-        .order('name')
-      
-      if (!error && data) {
-        setClients(data)
-      }
-    } catch (err) {
-      console.error('Error fetching clients:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchClients()
-  }, [])
+    fetchClients().then(() => setLoading(false))
+  }, [fetchClients])
 
   const handleOpenNew = () => {
     setEditingClient(null)
@@ -72,18 +48,25 @@ export function ClientsTable() {
   }
 
   const handleSave = async () => {
-    if (!form.name) return
+    const name = form.name.trim().toUpperCase()
+    if (!name) return
+
+    const duplicate = clients.find(c => c.name === name && (!editingClient || c.id !== editingClient.id))
+    if (duplicate) {
+      alert(`Ya existe un cliente con el nombre "${name}"`)
+      return
+    }
 
     try {
       if (editingClient) {
         await database
           .from('clients')
-          .update(form)
+          .update({ ...form, name })
           .eq('id', editingClient.id)
       } else {
         await database
           .from('clients')
-          .insert([form])
+          .insert([{ ...form, name }])
       }
       closeModal()
       fetchClients()
