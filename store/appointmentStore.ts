@@ -231,7 +231,6 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
         .from('staff')
         .select('*')
         .eq('is_active', true)
-        .order('name')
       
       if (error) {
         console.error('Error fetching staff:', error)
