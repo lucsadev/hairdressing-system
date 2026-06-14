@@ -10,6 +10,7 @@ export interface Client {
   phone: string | null
   email: string | null
   notes: string | null
+  birth_date: string | null
   created_at: string
 }
 

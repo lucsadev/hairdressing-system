@@ -71,7 +71,7 @@ export default function RootLayout({
           }}
           defaultColorScheme="light"
         >
-          <Notifications />
+          <Notifications position="top-right" zIndex={9999} />
           <AuthProvider>
             {children}
           </AuthProvider>

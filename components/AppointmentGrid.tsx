@@ -16,7 +16,9 @@ import {
   Badge,
   ActionIcon,
   TextInput,
+  Popover,
 } from "@mantine/core";
+import { DatePicker } from "@mantine/dates";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
@@ -1952,6 +1954,7 @@ export function AppointmentGrid() {
 
   return (
     <Box style={{ padding: isClient && isMobile ? 8 : 16 }}>
+      <style>{`.date-hover-btn:hover { background-color: oklch(71.5% 0.143 215.221 / 0.3) !important; }`}</style>
       {/* Selector de fecha en móvil - fijo en la parte superior de la grilla */}
       {isClient && isMobile && (
         <Box
@@ -1982,49 +1985,37 @@ export function AppointmentGrid() {
           >
             ←
           </ActionIcon>
-          <Button
-            variant="subtle"
-            size="xxs"
-            style={{ padding: "0 4px", minWidth: 55, fontWeight: 500 }}
-            onClick={() => setDatePickerOpened(true)}
+          <Popover
+            opened={datePickerOpened}
+            onClose={() => setDatePickerOpened(false)}
+            position="bottom"
+            shadow="md"
+            width={280}
           >
-            {formatShortLocalDate(selectedDate)}
-          </Button>
-          {datePickerOpened && (
-            <Box
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 1200,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(0,0,0,0.3)",
-              }}
-              onClick={() => setDatePickerOpened(false)}
-            >
-              <Box
-                style={{ background: "#fff", padding: 16, borderRadius: 8 }}
-                onClick={(e) => e.stopPropagation()}
+            <Popover.Target>
+              <Button
+                variant="subtle"
+                size="xxs"
+                className="date-hover-btn"
+                style={{ padding: "0 4px", minWidth: 55, fontWeight: 500 }}
+                onClick={() => setDatePickerOpened((o) => !o)}
               >
-                <input
-                  type="date"
-                  autoFocus
-                  value={dayjs(selectedDate).format('YYYY-MM-DD')}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    if (val) {
-                      const [y, m, d] = val.split('-').map(Number)
-                      const date = new Date(y, m - 1, d)
-                      useAppointmentStore.getState().setSelectedDate(date)
-                      setDatePickerOpened(false)
-                    }
-                  }}
-                  style={{ fontSize: 18, padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
-                />
-              </Box>
-            </Box>
-          )}
+                {formatShortLocalDate(selectedDate)}
+              </Button>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <DatePicker
+                value={dayjs(selectedDate).format('YYYY-MM-DD')}
+                onChange={(dateStr) => {
+                  if (dateStr) {
+                    const [y, m, d] = dateStr.split('-').map(Number)
+                    useAppointmentStore.getState().setSelectedDate(new Date(y, m - 1, d))
+                    setDatePickerOpened(false)
+                  }
+                }}
+              />
+            </Popover.Dropdown>
+          </Popover>
           <ActionIcon
             variant="default"
             size="xs"

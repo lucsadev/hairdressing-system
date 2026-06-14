@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { useAuthStore } from '@/store/authStore'
 import { useAppointmentStore } from '@/store/appointmentStore'
 import { formatFullLocalDate, addDays } from '@/store/dateUtils'
+import { BirthdayModal } from '@/components/BirthdayModal'
 import dayjs from 'dayjs'
 
 export default function DashboardLayout({
@@ -81,6 +82,8 @@ export default function DashboardLayout({
           </Button>
         </Alert>
       )}
+      <style>{`.date-hover-btn:hover { background-color: oklch(71.5% 0.143 215.221 / 0.3) !important; }`}</style>
+      <BirthdayModal />
       <Box
         style={{
           height: isClient && isMobile ? 40 : 70,
@@ -124,6 +127,7 @@ export default function DashboardLayout({
                   <Button
                     variant="subtle"
                     size="compact-sm"
+                    className="date-hover-btn"
                     style={{ fontWeight: 500, minWidth: 100 }}
                     onClick={() => setDatePickerOpened((o) => !o)}
                   >
@@ -144,7 +148,7 @@ export default function DashboardLayout({
                 </Popover.Dropdown>
               </Popover>
               <ActionIcon variant="default" size="sm" onClick={handleNextDay}>→</ActionIcon>
-              <Button variant="subtle" size="compact-sm" onClick={handleToday}>
+              <Button variant="subtle" size="compact-sm" className="date-hover-btn" onClick={handleToday}>
                 Hoy
               </Button>
             </Group>
