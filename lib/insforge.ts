@@ -154,15 +154,5 @@ export const database = {
   from: (table: string) => getClient().database.from(table)
 }
 
-// Also export realtime
-export const realtime = {
-  connect: () => client.realtime.connect(),
-  subscribe: (channel: string) => client.realtime.subscribe(channel),
-  on: (event: string, callback: (payload: any) => void) => client.realtime.on(event, callback),
-  once: (event: string, callback: (payload: any) => void) => client.realtime.once(event, callback),
-  publish: (channel: string, event: string, payload: any) => client.realtime.publish(channel, event, payload),
-  unsubscribe: (channel: string) => client.realtime.unsubscribe(channel),
-  disconnect: () => client.realtime.disconnect(),
-  get isConnected() { return client.realtime.isConnected },
-  get connectionState() { return client.realtime.connectionState }
-}
+// Re-export custom realtime (socket.io-client con transports: ['websocket', 'polling'])
+export { realtime } from './realtime'
