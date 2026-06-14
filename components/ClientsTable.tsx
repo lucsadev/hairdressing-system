@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
@@ -60,7 +61,7 @@ export function ClientsTable() {
 
     const duplicate = clients.find(c => c.name === name && (!editingClient || c.id !== editingClient.id))
     if (duplicate) {
-      alert(`Ya existe un cliente con el nombre "${name}"`)
+      notifications.show({ color: 'red', title: 'Error', message: `Ya existe un cliente con el nombre "${name}"` })
       return
     }
 

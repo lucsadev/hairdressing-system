@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Box, Table, Button, Group, Title, Text, ActionIcon, Modal, Stack, TextInput, SegmentedControl } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database, auth } from '@/lib/insforge'
@@ -19,6 +20,7 @@ export function UsuariosTable() {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [isClient, setIsClient] = useState(false)
   
@@ -73,12 +75,13 @@ export function UsuariosTable() {
 
       if (authError) {
         console.error('Error creating auth user:', authError)
-        alert('Error: ' + authError.message)
+        notifications.show({ color: 'red', title: 'Error', message: authError.message })
         return
       }
 
       if (!authData?.user) {
-        alert('Error: No se pudo crear el usuario')
+        console.error('Error creating auth user: no user returned')
+        notifications.show({ color: 'red', title: 'Error', message: 'No se pudo crear el usuario' })
         return
       }
 
@@ -95,29 +98,38 @@ export function UsuariosTable() {
 
       if (profileError) {
         console.error('Error creating profile:', profileError)
-        alert('Error: ' + profileError.message)
+        notifications.show({ color: 'red', title: 'Error', message: profileError.message })
         return
       }
 
       closeModal()
+      notifications.show({ color: 'green', title: 'Éxito', message: 'Usuario creado correctamente' })
       fetchProfiles()
     } catch (err: any) {
       console.error('Error saving:', err)
-      alert('Error: ' + err.message)
+      notifications.show({ color: 'red', title: 'Error', message: err.message })
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar usuario?')) return
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmId(id)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return
+    const id = deleteConfirmId
+    setDeleteConfirmId(null)
     
     try {
       await database
         .from('profiles')
         .delete()
         .eq('id', id)
+      notifications.show({ color: 'green', title: 'Éxito', message: 'Usuario eliminado' })
       fetchProfiles()
     } catch (err) {
       console.error('Error deleting profile:', err)
+      notifications.show({ color: 'red', title: 'Error', message: 'No se pudo eliminar el usuario' })
     }
   }
 
@@ -163,7 +175,7 @@ export function UsuariosTable() {
               </Table.Td>
               <Table.Td>
                 <Group gap="xs">
-                  <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(profile.id)}>
+                  <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteClick(profile.id)}>
                     🗑️
                   </ActionIcon>
                 </Group>
@@ -220,6 +232,14 @@ export function UsuariosTable() {
             </Button>
           </Group>
         </Stack>
+      </Modal>
+
+      <Modal opened={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirmar eliminación" zIndex={1100}>
+        <Text size="sm" mb="md">¿Estás seguro de que querés eliminar este usuario?</Text>
+        <Group justify="flex-end">
+          <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancelar</Button>
+          <Button color="red" onClick={handleDeleteConfirm}>Eliminar</Button>
+        </Group>
       </Modal>
     </Box>
   )
