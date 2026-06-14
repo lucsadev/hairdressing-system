@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
-import { IconPlus, IconSearch } from '@tabler/icons-react'
+import { IconPlus } from '@tabler/icons-react'
 import { useAppointmentStore, Client } from '@/store/appointmentStore'
-import dayjs from 'dayjs'
-import 'dayjs/locale/es'
 
 export function ClientsTable() {
   const clients = useAppointmentStore((s) => s.clients)
@@ -31,12 +29,6 @@ export function ClientsTable() {
     email: '',
     birth_date: ''
   })
-
-  const filteredClients = useMemo(() => {
-    if (!search.trim()) return clients
-    const q = search.toLowerCase()
-    return clients.filter(c => c.name.toLowerCase().includes(q))
-  }, [clients, search])
 
   useEffect(() => {
     fetchClients().then(() => setLoading(false))
@@ -65,7 +57,7 @@ export function ClientsTable() {
 
     const duplicate = clients.find(c => c.name === name && (!editingClient || c.id !== editingClient.id))
     if (duplicate) {
-      notifications.show({ color: 'red', title: 'Error', message: `Ya existe un cliente con el nombre "${name}"` })
+      alert(`Ya existe un cliente con el nombre "${name}"`)
       return
     }
 
