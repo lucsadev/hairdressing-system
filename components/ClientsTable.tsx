@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
@@ -16,6 +17,7 @@ export function ClientsTable() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [isClient, setIsClient] = useState(false)
+  const [search, setSearch] = useState('')
   
   useEffect(() => {
     setIsClient(true)
@@ -24,7 +26,8 @@ export function ClientsTable() {
   const [form, setForm] = useState({
     name: '',
     phone: '',
-    email: ''
+    email: '',
+    birth_date: ''
   })
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export function ClientsTable() {
 
   const handleOpenNew = () => {
     setEditingClient(null)
-    setForm({ name: '', phone: '', email: '' })
+    setForm({ name: '', phone: '', email: '', birth_date: '' })
     openModal()
   }
 
@@ -42,7 +45,8 @@ export function ClientsTable() {
     setForm({
       name: client.name,
       phone: client.phone || '',
-      email: client.email || ''
+      email: client.email || '',
+      birth_date: client.birth_date || ''
     })
     openModal()
   }
@@ -106,21 +110,31 @@ export function ClientsTable() {
               </ActionIcon>
       </Group>
 
+      <TextInput
+        placeholder="Buscar cliente..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        leftSection={<IconSearch size={16} />}
+        mb="sm"
+      />
+
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Nombre</Table.Th>
             <Table.Th>Teléfono</Table.Th>
             {!isClient || !isMobile ? <Table.Th>Email</Table.Th> : null}
+            {!isClient || !isMobile ? <Table.Th>Cumpleaños</Table.Th> : null}
             <Table.Th>Acciones</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {clients.map(client => (
+          {filteredClients.map(client => (
             <Table.Tr key={client.id}>
               <Table.Td>{client.name}</Table.Td>
               <Table.Td>{client.phone}</Table.Td>
               {!isClient || !isMobile ? <Table.Td>{client.email}</Table.Td> : null}
+              {!isClient || !isMobile ? <Table.Td>{client.birth_date ? dayjs(client.birth_date).locale('es').format('D [de] MMMM').replace(/de ([a-z])/, (_, l) => 'de ' + l.toUpperCase()) : '-'}</Table.Td> : null}
               <Table.Td>
                 <Group gap="xs">
                   <ActionIcon variant="subtle" onClick={() => handleOpenEdit(client)}>
@@ -153,6 +167,12 @@ export function ClientsTable() {
             label="Email"
             value={form.email}
             onChange={(e) => setForm(prev => ({ ...prev, email: e.target.value }))}
+          />
+          <TextInput
+            label="Cumpleaños"
+            type="date"
+            value={form.birth_date}
+            onChange={(e) => setForm(prev => ({ ...prev, birth_date: e.target.value }))}
           />
           <Group grow>
             <Button variant="outline" style={{ opacity: 0.5 }} onClick={closeModal}>

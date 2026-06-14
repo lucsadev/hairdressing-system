@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "@insforge/sdk": "^1.2.5",
-    "@tabler/icons-react": "^3.32.0",
     "@mantine/core": "^9.0.2",
+    "@mantine/dates": "^9.0.2",
     "@mantine/hooks": "^9.0.2",
     "@mantine/notifications": "^9.0.2",
+    "@tabler/icons-react": "^3.32.0",
     "dayjs": "^1.11.20",
     "next": "16.2.4",
     "react": "19.2.4",

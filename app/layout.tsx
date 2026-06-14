@@ -1,4 +1,5 @@
 import '@mantine/core/styles.css'
+import '@mantine/dates/styles.css'
 import '@mantine/notifications/styles.css'
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
@@ -70,7 +71,7 @@ export default function RootLayout({
           }}
           defaultColorScheme="light"
         >
-          <Notifications />
+          <Notifications position="top-right" zIndex={9999} />
           <AuthProvider>
             {children}
           </AuthProvider>
