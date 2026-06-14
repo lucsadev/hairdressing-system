@@ -6,7 +6,7 @@ import {
   Stack,
   Text,
   Table, NumberInput, Button, Group,
-  Radio, ActionIcon, Box, Badge, Select
+  Radio, ActionIcon, Box, Badge, Select, TextInput, Autocomplete
 } from '@mantine/core'
 import { IconTrash, IconPlus } from '@tabler/icons-react'
 import { useAppointmentStore, Service, Appointment, Ticket, TicketItem } from '@/store/appointmentStore'
@@ -17,6 +17,8 @@ interface TicketItemInput {
   unit_price: number
   subtotal: number
   is_extra: boolean
+  custom_name?: string
+  staff_id?: string | null
   // For existing items from DB
   _dbId?: string
 }
@@ -52,7 +54,7 @@ export function TicketModal({
   ticket,
   onTicketUpdated,
 }: TicketModalProps) {
-  const { createTicket, updateTicket, services } = useAppointmentStore()
+  const { createTicket, updateTicket, services, staff } = useAppointmentStore()
   const [saving, setSaving] = useState(false)
 
   // Payment method: cash or card
@@ -73,6 +75,8 @@ export function TicketModal({
         unit_price: item.unit_price,
         subtotal: item.subtotal,
         is_extra: item.is_extra,
+        custom_name: (item as any).custom_name || undefined,
+        staff_id: (item as any).staff_id || null,
         _dbId: item.id
       })))
       setPaymentMethod(ticket.payment_method)
@@ -102,7 +106,8 @@ export function TicketModal({
           service_id: apt.service_id,
           unit_price: price,
           subtotal: price,
-          is_extra: false
+          is_extra: false,
+          staff_id: apt.staff_id
         }
       })
 
@@ -114,7 +119,8 @@ export function TicketModal({
           service_id: service.id,
           unit_price: price,
           subtotal: price,
-          is_extra: false
+          is_extra: false,
+          staff_id: null
         })
       }
 
@@ -176,10 +182,20 @@ export function TicketModal({
 
     try {
       if (mode === 'edit' && ticket) {
-        // Update existing ticket
+        // Update existing ticket + items
+        const itemPayload = items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
+          service_id,
+          unit_price,
+          subtotal,
+          is_extra,
+          custom_name,
+          staff_id: staff_id || null
+        }))
+
         const result = await updateTicket(ticket.id, {
           payment_method: paymentMethod,
-          total_amount: total
+          total_amount: total,
+          items: itemPayload
         })
 
         if (result.error) {
@@ -195,11 +211,13 @@ export function TicketModal({
           appointment_id: appointmentId,
           payment_method: paymentMethod,
           notes: '',
-          items: items.map(({ id, service_id, unit_price, subtotal, is_extra }) => ({
+          items: items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
             service_id,
             unit_price,
             subtotal,
-            is_extra
+            is_extra,
+            custom_name,
+            staff_id: staff_id || null
           }))
         })
 
@@ -254,6 +272,7 @@ export function TicketModal({
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Servicio</Table.Th>
+              <Table.Th style={{ width: 140 }}>Staff</Table.Th>
               <Table.Th style={{ width: 120 }}>Precio Unit.</Table.Th>
               <Table.Th style={{ width: 120 }}>Subtotal</Table.Th>
               <Table.Th style={{ width: 50 }}></Table.Th>
@@ -263,23 +282,39 @@ export function TicketModal({
             {items.map(item => (
               <Table.Tr key={item.id}>
                 <Table.Td>
-                  <Select
-                    value={item.service_id || ''}
+                  <Autocomplete
+                    value={item.service_id ? (services.find(s => s.id === item.service_id)?.name || '') : (item.custom_name || '')}
                     onChange={(val) => {
-                      const svc = services.find(s => s.id === val)
-                      if (svc) {
-                        const price = paymentMethod === 'cash' ? svc.cash : svc.card
-                        updateItem(item.id, 'service_id', val)
+                      const matched = services.find(s => s.name.toLowerCase() === val.toLowerCase())
+                      if (matched) {
+                        updateItem(item.id, 'service_id', matched.id)
+                        const price = paymentMethod === 'cash' ? matched.cash : matched.card
                         updateItem(item.id, 'unit_price', price)
                         updateItem(item.id, 'subtotal', price)
+                        updateItem(item.id, 'custom_name', undefined)
+                      } else {
+                        updateItem(item.id, 'service_id', null)
+                        updateItem(item.id, 'custom_name', val || undefined)
+                        if (!val) {
+                          updateItem(item.id, 'unit_price', 0)
+                          updateItem(item.id, 'subtotal', 0)
+                        }
                       }
                     }}
-                    data={services.map(s => ({
-                      value: s.id,
-                      label: `${s.name} ($${paymentMethod === 'cash' ? s.cash : s.card})`
-                    }))}
+                    data={services.map(s => s.name)}
                     size="xs"
-                    placeholder={item.is_extra ? 'Extra...' : undefined}
+                    placeholder="Servicio o descripción..."
+                    comboboxProps={{ withinPortal: false }}
+                  />
+                </Table.Td>
+                <Table.Td>
+                  <Select
+                    value={item.staff_id || ''}
+                    onChange={(val) => updateItem(item.id, 'staff_id', val || null)}
+                    data={staff.map(s => ({ value: s.id, label: s.name }))}
+                    size="xs"
+                    placeholder="Staff..."
+                    clearable
                     comboboxProps={{ withinPortal: false }}
                   />
                 </Table.Td>

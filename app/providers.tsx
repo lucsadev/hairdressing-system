@@ -36,9 +36,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth()
   }, [initAuth])
 
-  // Setup realtime subscriptions
+  // Initial data fetch + Setup realtime subscriptions
   useEffect(() => {
     if (!initialized) return
+
+    // Load initial data
+    fetchStaff()
+    fetchServices()
+    fetchClients()
 
     const setupRealtime = async () => {
       try {
