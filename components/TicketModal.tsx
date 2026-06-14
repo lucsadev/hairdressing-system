@@ -6,7 +6,7 @@ import {
   Stack,
   Text,
   Table, NumberInput, Button, Group,
-  Radio, ActionIcon, Box, Badge, Select, TextInput, Autocomplete, Combobox
+  Radio, ActionIcon, Box, Badge, Select, TextInput, Autocomplete
 } from '@mantine/core'
 import { IconTrash, IconPlus } from '@tabler/icons-react'
 import { useAppointmentStore, Service, Appointment, Ticket, TicketItem } from '@/store/appointmentStore'
@@ -282,54 +282,30 @@ export function TicketModal({
             {items.map(item => (
               <Table.Tr key={item.id}>
                 <Table.Td>
-                  {item.service_id ? (
-                    <Select
-                      value={item.service_id || ''}
-                      onChange={(val) => {
-                        const svc = services.find(s => s.id === val)
-                        if (svc) {
-                          const price = paymentMethod === 'cash' ? svc.cash : svc.card
-                          updateItem(item.id, 'service_id', val)
-                          updateItem(item.id, 'unit_price', price)
-                          updateItem(item.id, 'subtotal', price)
+                  <Autocomplete
+                    value={item.service_id ? (services.find(s => s.id === item.service_id)?.name || '') : (item.custom_name || '')}
+                    onChange={(val) => {
+                      const matched = services.find(s => s.name.toLowerCase() === val.toLowerCase())
+                      if (matched) {
+                        updateItem(item.id, 'service_id', matched.id)
+                        const price = paymentMethod === 'cash' ? matched.cash : matched.card
+                        updateItem(item.id, 'unit_price', price)
+                        updateItem(item.id, 'subtotal', price)
+                        updateItem(item.id, 'custom_name', undefined)
+                      } else {
+                        updateItem(item.id, 'service_id', null)
+                        updateItem(item.id, 'custom_name', val || undefined)
+                        if (!val) {
+                          updateItem(item.id, 'unit_price', 0)
+                          updateItem(item.id, 'subtotal', 0)
                         }
-                      }}
-                      data={services.map(s => ({
-                        value: s.id,
-                        label: `${s.name} ($${paymentMethod === 'cash' ? s.cash : s.card})`
-                      }))}
-                      size="xs"
-                      searchable
-                      clearable
-                      nothingFoundMessage="Sin resultados"
-                      comboboxProps={{ withinPortal: false }}
-                    />
-                  ) : (
-                    <Autocomplete
-                      value={item.custom_name || ''}
-                      onChange={(val) => {
-                        const matched = services.find(s => s.name.toLowerCase() === val.toLowerCase())
-                        if (matched) {
-                          updateItem(item.id, 'service_id', matched.id)
-                          const price = paymentMethod === 'cash' ? matched.cash : matched.card
-                          updateItem(item.id, 'unit_price', price)
-                          updateItem(item.id, 'subtotal', price)
-                          updateItem(item.id, 'custom_name', undefined)
-                        } else {
-                          updateItem(item.id, 'custom_name', val || undefined)
-                          if (!val) {
-                            updateItem(item.id, 'unit_price', 0)
-                            updateItem(item.id, 'subtotal', 0)
-                          }
-                        }
-                      }}
-                      data={services.map(s => s.name)}
-                      size="xs"
-                      placeholder="Descripción del extra..."
-                      rightSection={<Combobox.Chevron size="xs" />}
-                      comboboxProps={{ withinPortal: false }}
-                    />
-                  )}
+                      }
+                    }}
+                    data={services.map(s => s.name)}
+                    size="xs"
+                    placeholder="Servicio o descripción..."
+                    comboboxProps={{ withinPortal: false }}
+                  />
                 </Table.Td>
                 <Table.Td>
                   <Select
