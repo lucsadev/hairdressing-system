@@ -11,7 +11,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconPlus, IconCash, IconCreditCard, IconArrowUpRight, IconArrowDownRight } from '@tabler/icons-react'
 import { useCashRegisterStore, EXPENSE_CATEGORIES } from '@/store/cashRegisterStore'
-import { useAppointmentStore } from '@/store/appointmentStore'
+import { database } from '@/lib/insforge'
 import dayjs from 'dayjs'
 
 function CashRegisterContent() {
@@ -20,7 +20,6 @@ function CashRegisterContent() {
     fetchOrCreateRegister, openRegister, closeRegister, refreshRegister,
     fetchExpenses, createExpense, updateExpense, deleteExpense
   } = useCashRegisterStore()
-  const { tickets, fetchTickets } = useAppointmentStore()
 
   const [isClient, setIsClient] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
@@ -47,17 +46,26 @@ function CashRegisterContent() {
     setIsClient(true)
   }, [])
 
+  const [todayTickets, setTodayTickets] = useState<any[]>([])
+
   useEffect(() => {
     if (!isClient) return
     fetchOrCreateRegister(today)
     fetchExpenses(today)
-    fetchTickets()
+    fetchTodayTickets()
   }, [isClient])
 
-  const todayTickets = tickets.filter(t => {
-    const ticketDate = dayjs(t.created_at).format('YYYY-MM-DD')
-    return ticketDate === today && t.status === 'completed'
-  })
+  const fetchTodayTickets = async () => {
+    const dayStart = dayjs(today).startOf('day').toISOString()
+    const dayEnd = dayjs(today).endOf('day').toISOString()
+    const { data } = await database
+      .from('tickets')
+      .select('total_amount, payment_method')
+      .gte('created_at', dayStart)
+      .lte('created_at', dayEnd)
+      .eq('status', 'completed')
+    setTodayTickets(data || [])
+  }
 
   const cashIncome = todayTickets
     .filter(t => t.payment_method === 'cash')

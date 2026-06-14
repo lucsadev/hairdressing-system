@@ -10,7 +10,6 @@ import {
   Text,
   Modal,
   Select,
-  NativeSelect,
   Textarea,
   Stack,
   Badge,
@@ -542,14 +541,15 @@ function GridCell({
               alignItems: "center",
             }}
           >
-            <NativeSelect
+            <Select
               value={staff.id}
-              onChange={(e) => {
-                useAppointmentStore.getState().setSelectedStaffId(e.target.value);
+              onChange={(value) => {
+                useAppointmentStore.getState().setSelectedStaffId(value || '');
                 if (typeof window !== "undefined") {
-                  localStorage.setItem("krear_selected_staff", e.target.value);
+                  localStorage.setItem("krear_selected_staff", value || '');
                 }
               }}
+              searchable
               style={{
                 width: "100%",
                 height: 50,
@@ -2030,6 +2030,7 @@ export function AppointmentGrid() {
           <Button
             variant="subtle"
             size="xxs"
+            className="date-hover-btn"
             onClick={() => {
               const nowArgentina = new Date();
               nowArgentina.setHours(0, 0, 0, 0);

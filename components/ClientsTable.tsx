@@ -1,13 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
-import { IconPlus } from '@tabler/icons-react'
+import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useAppointmentStore, Client } from '@/store/appointmentStore'
+import dayjs from 'dayjs'
+import 'dayjs/locale/es'
 
 export function ClientsTable() {
   const clients = useAppointmentStore((s) => s.clients)
@@ -22,6 +24,12 @@ export function ClientsTable() {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  const filteredClients = useMemo(() => {
+    if (!search.trim()) return clients
+    const q = search.toLowerCase()
+    return clients.filter(c => c.name.toLowerCase().includes(q))
+  }, [clients, search])
   
   const [form, setForm] = useState({
     name: '',
