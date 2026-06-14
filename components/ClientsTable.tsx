@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
-import { IconPlus } from '@tabler/icons-react'
+import { IconPlus, IconSearch } from '@tabler/icons-react'
 import { useAppointmentStore, Client } from '@/store/appointmentStore'
 
 export function ClientsTable() {
@@ -16,6 +16,7 @@ export function ClientsTable() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [isClient, setIsClient] = useState(false)
+  const [search, setSearch] = useState('')
   
   useEffect(() => {
     setIsClient(true)
@@ -26,6 +27,12 @@ export function ClientsTable() {
     phone: '',
     email: ''
   })
+
+  const filteredClients = useMemo(() => {
+    if (!search.trim()) return clients
+    const q = search.toLowerCase()
+    return clients.filter(c => c.name.toLowerCase().includes(q))
+  }, [clients, search])
 
   useEffect(() => {
     fetchClients().then(() => setLoading(false))
@@ -106,6 +113,14 @@ export function ClientsTable() {
               </ActionIcon>
       </Group>
 
+      <TextInput
+        placeholder="Buscar cliente..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        leftSection={<IconSearch size={16} />}
+        mb="sm"
+      />
+
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -116,7 +131,7 @@ export function ClientsTable() {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {clients.map(client => (
+          {filteredClients.map(client => (
             <Table.Tr key={client.id}>
               <Table.Td>{client.name}</Table.Td>
               <Table.Td>{client.phone}</Table.Td>

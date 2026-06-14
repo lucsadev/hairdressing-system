@@ -1120,6 +1120,7 @@ export function AppointmentGrid() {
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientEmail, setNewClientEmail] = useState("");
+  const [datePickerOpened, setDatePickerOpened] = useState(false);
   const [dragTargetTime, setDragTargetTime] = useState<string | null>(null);
   const [draggedAppointmentId, setDraggedAppointmentId] = useState<
     string | null
@@ -1981,9 +1982,49 @@ export function AppointmentGrid() {
           >
             ←
           </ActionIcon>
-          <Text size="xxs" fw={500} style={{ minWidth: 55, textAlign: "center" }}>
+          <Button
+            variant="subtle"
+            size="xxs"
+            style={{ padding: "0 4px", minWidth: 55, fontWeight: 500 }}
+            onClick={() => setDatePickerOpened(true)}
+          >
             {formatShortLocalDate(selectedDate)}
-          </Text>
+          </Button>
+          {datePickerOpened && (
+            <Box
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 1200,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,0.3)",
+              }}
+              onClick={() => setDatePickerOpened(false)}
+            >
+              <Box
+                style={{ background: "#fff", padding: 16, borderRadius: 8 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="date"
+                  autoFocus
+                  value={dayjs(selectedDate).format('YYYY-MM-DD')}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val) {
+                      const [y, m, d] = val.split('-').map(Number)
+                      const date = new Date(y, m - 1, d)
+                      useAppointmentStore.getState().setSelectedDate(date)
+                      setDatePickerOpened(false)
+                    }
+                  }}
+                  style={{ fontSize: 18, padding: 8, border: '1px solid #ccc', borderRadius: 4 }}
+                />
+              </Box>
+            </Box>
+          )}
           <ActionIcon
             variant="default"
             size="xs"

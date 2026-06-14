@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Box, LoadingOverlay, Group, ActionIcon, Button, Text, Image, Drawer, Burger, Alert } from '@mantine/core'
+import { Box, LoadingOverlay, Group, ActionIcon, Button, Text, Image, Drawer, Burger, Alert, Popover } from '@mantine/core'
+import { DatePicker, DatesProvider } from '@mantine/dates'
+import 'dayjs/locale/es'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconPlus } from '@tabler/icons-react'
 import { Sidebar } from '@/components/Sidebar'
 import { useAuthStore } from '@/store/authStore'
 import { useAppointmentStore } from '@/store/appointmentStore'
 import { formatFullLocalDate, addDays } from '@/store/dateUtils'
+import dayjs from 'dayjs'
 
 export default function DashboardLayout({
   children,
@@ -20,6 +22,7 @@ export default function DashboardLayout({
   const { selectedDate, setSelectedDate } = useAppointmentStore()
 
   const [drawerOpened, setDrawerOpened] = useState(false)
+  const [datePickerOpened, setDatePickerOpened] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
 
@@ -68,6 +71,7 @@ export default function DashboardLayout({
   }
 
   return (
+    <DatesProvider settings={{ locale: 'es', firstDayOfWeek: 1 }}>
     <Box style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {sessionExpired && (
         <Alert color="yellow" variant="light" styles={{ root: { margin: '8px' } }}>
@@ -109,11 +113,38 @@ export default function DashboardLayout({
           {(!isClient || !isMobile) && (
             <Group gap="xs">
               <ActionIcon variant="default" size="sm" onClick={handlePrevDay}>←</ActionIcon>
-              <Text size="sm" fw={500} style={{ minWidth: 100, textAlign: 'center' }}>
-                {formatFullLocalDate(selectedDate)}
-              </Text>
+              <Popover
+                opened={datePickerOpened}
+                onClose={() => setDatePickerOpened(false)}
+                position="bottom"
+                shadow="md"
+                width={320}
+              >
+                <Popover.Target>
+                  <Button
+                    variant="subtle"
+                    size="compact-sm"
+                    style={{ fontWeight: 500, minWidth: 100 }}
+                    onClick={() => setDatePickerOpened((o) => !o)}
+                  >
+                    {formatFullLocalDate(selectedDate)}
+                  </Button>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <DatePicker
+                    value={dayjs(selectedDate).format('YYYY-MM-DD')}
+                    onChange={(dateStr) => {
+                      if (dateStr) {
+                        const [y, m, d] = dateStr.split('-').map(Number)
+                        setSelectedDate(new Date(y, m - 1, d))
+                        setDatePickerOpened(false)
+                      }
+                    }}
+                  />
+                </Popover.Dropdown>
+              </Popover>
               <ActionIcon variant="default" size="sm" onClick={handleNextDay}>→</ActionIcon>
-              <Button variant="subtle" size="xs" onClick={handleToday}>
+              <Button variant="subtle" size="compact-sm" onClick={handleToday}>
                 Hoy
               </Button>
             </Group>
@@ -150,5 +181,6 @@ export default function DashboardLayout({
         </Box>
       </Box>
     </Box>
+    </DatesProvider>
   )
 }
