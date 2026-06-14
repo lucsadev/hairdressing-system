@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: 'Peluquería Krear - Gestión de Turnos',
   description: 'Sistema de gestión de turnos y caja para Peluquería Krear',
   manifest: '/manifest.json',
+  icons: {
+    apple: '/logo.png',
+  },
   appleWebApp: {
     capable: true,
     title: 'Krear',

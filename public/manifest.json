@@ -9,16 +9,10 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/logo.png",
+      "sizes": "85x68",
+      "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     }
   ],
   "screenshots": [],
