@@ -60,6 +60,8 @@ export interface TicketItem {
   unit_price: number
   subtotal: number
   is_extra: boolean
+  staff_id: string | null
+  name?: string
   created_at: string
 }
 
@@ -97,7 +99,7 @@ interface AppointmentState {
   fetchBlockedSlots: (date: Date) => Promise<void>
   fetchTickets: () => Promise<void>
   createTicket: (data: { client_id: string; appointment_id?: string; payment_method: 'cash' | 'card'; notes?: string; items: Omit<TicketItem, 'id' | 'ticket_id' | 'created_at'>[] }) => Promise<{ error: string | null; ticketId: string | null }>
-  updateTicket: (id: string, data: Partial<Ticket>) => Promise<{ error: string | null }>
+  updateTicket: (id: string, data: Partial<Ticket> & { items?: Omit<TicketItem, 'id' | 'ticket_id' | 'created_at'>[] }) => Promise<{ error: string | null }>
   deleteTicket: (id: string) => Promise<{ error: string | null }>
   createAppointment: (data: Partial<Appointment>) => Promise<{ error: string | null }>
   updateAppointment: (id: string, data: Partial<Appointment>) => Promise<{ error: string | null }>
@@ -556,9 +558,10 @@ fetchAppointments: async (date: Date) => {
     }
   },
 
-  updateTicket: async (id: string, data: Partial<Ticket>) => {
+  updateTicket: async (id: string, data: Partial<Ticket> & { items?: Omit<TicketItem, 'id' | 'ticket_id' | 'created_at'>[] }) => {
     try {
-      const updateData = { ...data, updated_at: new Date().toISOString() }
+      const { items, ...ticketData } = data
+      const updateData = { ...ticketData, updated_at: new Date().toISOString() }
       const { error } = await database
         .from('tickets')
         .update(updateData)
@@ -566,6 +569,25 @@ fetchAppointments: async (date: Date) => {
 
       if (error) {
         return { error: error.message }
+      }
+
+      if (items) {
+        const { error: deleteError } = await database
+          .from('ticket_items')
+          .delete()
+          .eq('ticket_id', id)
+
+        if (deleteError) {
+          return { error: deleteError.message }
+        }
+
+        const { error: insertError } = await database
+          .from('ticket_items')
+          .insert(items.map(item => ({ ...item, ticket_id: id })))
+
+        if (insertError) {
+          return { error: insertError.message }
+        }
       }
 
       await get().fetchTickets()
