@@ -93,9 +93,18 @@ export default function DashboardLayout({
           alignItems: 'center',
           padding: isClient && isMobile ? '0 8px' : '0 12px',
           flexShrink: 0,
-          overflow: 'hidden'
+          overflow: 'hidden',
+          position: 'relative'
         }}
       >
+        {isClient && isMobile && (
+          <Burger
+            opened={drawerOpened}
+            onClick={() => setDrawerOpened(true)}
+            size="sm"
+            style={{ marginRight: 4 }}
+          />
+        )}
         <Group gap={isClient && isMobile ? "xs" : "sm"}>
           <Image src="/logo.png" w={isClient && isMobile ? 28 : 85} h={isClient && isMobile ? 24 : 68} radius="xl" alt="Logo" style={{overflow:'hidden'}} />
           <Text
@@ -112,7 +121,6 @@ export default function DashboardLayout({
           </Text>
         </Group>
         <Box style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-          {/* Solo mostrar selector de fecha en desktop, en mobile está en AppointmentGrid */}
           {(!isClient || !isMobile) && (
             <Group gap="xs">
               <ActionIcon variant="default" size="sm" onClick={handlePrevDay}>←</ActionIcon>
@@ -155,13 +163,6 @@ export default function DashboardLayout({
           )}
         </Box>
       </Box>
-
-      {/* Burger flotante a la izquierda, debajo del header */}
-      {isClient && isMobile && (
-        <Box style={{ position: 'absolute', left: 8, top: 50, zIndex: 110  }}>
-          <Burger opened={drawerOpened} onClick={() => setDrawerOpened(true)} size="sm" />
-        </Box>
-      )}
 
       <Box style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* Desktop sidebar - mostrar en >= 500px */}

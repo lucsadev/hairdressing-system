@@ -95,41 +95,41 @@ function CashHistoryContent() {
       </Group>
 
       {history.length > 0 && (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb="lg">
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+        <SimpleGrid cols={{ base: 2, sm: 2, md: 4 }} mb="lg" spacing={isMobile ? 'xs' : 'md'}>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconArrowUpRight size={20} color="green" />
-              <Text size="sm" c="dimmed">Ingresos Efectivo</Text>
+              <IconArrowUpRight size={isMobile ? 16 : 20} color="green" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Efectivo</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="green">
               +{formatCurrency(totals.cashIncome)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconCreditCard size={20} color="violet" />
-              <Text size="sm" c="dimmed">Ingresos Tarjeta</Text>
+              <IconCreditCard size={isMobile ? 16 : 20} color="violet" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Tarjeta</Text>
             </Group>
-            <Text size="xl" fw={700} c="violet">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="violet">
               +{formatCurrency(totals.cardIncome)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconArrowDownRight size={20} color="red" />
-              <Text size="sm" c="dimmed">Gastos</Text>
+              <IconArrowDownRight size={isMobile ? 16 : 20} color="red" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Gastos</Text>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="red">
               -{formatCurrency(totals.expenses)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconCash size={20} color="blue" />
-              <Text size="sm" c="dimmed">Neto</Text>
+              <IconCash size={isMobile ? 16 : 20} color="blue" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Neto</Text>
             </Group>
             <Text
-              size="xl"
+              size={isMobile ? 'md' : 'xl'}
               fw={700}
               c={totals.totalIncome - totals.expenses >= 0 ? 'green' : 'red'}
             >
@@ -201,67 +201,100 @@ function CashHistoryContent() {
           No hay registros de caja en este período
         </Text>
       ) : (
-        <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Fecha</Table.Th>
-              <Table.Th>Estado</Table.Th>
-              <Table.Th>Efectivo</Table.Th>
-              {!isMobile && <Table.Th>Tarjeta</Table.Th>}
-              <Table.Th>Gastos</Table.Th>
-              {!isMobile && <Table.Th>Esperado</Table.Th>}
-              <Table.Th>Cierre</Table.Th>
-              <Table.Th>Dif.</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {sortedHistory.map(reg => {
-              const income = Number(reg.total_cash_income) + Number(reg.total_card_income)
-              const net = income - Number(reg.total_expenses)
+        <Box style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <Table
+            striped
+            highlightOnHover
+            horizontalSpacing={isMobile ? 'xs' : 'md'}
+            verticalSpacing={isMobile ? 'xs' : 'sm'}
+          >
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Fecha</Table.Th>
+                {!isMobile && <Table.Th>Estado</Table.Th>}
+                <Table.Th>Efectivo</Table.Th>
+                {!isMobile && <Table.Th>Tarjeta</Table.Th>}
+                <Table.Th>Gastos</Table.Th>
+                {!isMobile && <Table.Th>Esperado</Table.Th>}
+                <Table.Th>{isMobile ? 'Neto' : 'Cierre'}</Table.Th>
+                {!isMobile && <Table.Th>Dif.</Table.Th>}
+                {isMobile && <Table.Th />}
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {sortedHistory.map(reg => {
+                const income = Number(reg.total_cash_income) + Number(reg.total_card_income)
+                const net = income - Number(reg.total_expenses)
 
-              return (
-                <Table.Tr key={reg.id}>
-                  <Table.Td style={{ whiteSpace: 'nowrap' }}>
-                    {dayjs(reg.date).format('DD/MM/YYYY')}
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge color={reg.status === 'open' ? 'yellow' : 'green'}>
-                      {reg.status === 'open' ? 'Abierta' : 'Cerrada'}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td fw={500}>{formatCurrency(Number(reg.total_cash_income))}</Table.Td>
-                  {!isMobile && <Table.Td>{formatCurrency(Number(reg.total_card_income))}</Table.Td>}
-                  <Table.Td c="red">{formatCurrency(Number(reg.total_expenses))}</Table.Td>
-                  {!isMobile && <Table.Td>{formatCurrency(Number(reg.expected_balance))}</Table.Td>}
-                  <Table.Td fw={600}>
-                    {reg.status === 'closed' ? formatCurrency(Number(reg.closing_balance)) : '-'}
-                  </Table.Td>
-                  <Table.Td>
-                    {reg.status === 'closed' ? (
-                      <Text c={Number(reg.difference) === 0 ? 'green' : 'orange'}>
-                        {formatCurrency(Number(reg.difference))}
-                      </Text>
-                    ) : (
-                      <Button
-                        size="xs"
-                        color="yellow"
-                        variant="outline"
-                        onClick={() => {
-                          setClosingRegister(reg)
-                          setClosingBalance(Number(reg.expected_balance))
-                          setCloseNotes('')
-                          openCloseModal()
-                        }}
-                      >
-                        Cerrar
-                      </Button>
+                return (
+                  <Table.Tr key={reg.id}>
+                    <Table.Td style={{ whiteSpace: 'nowrap', fontSize: isMobile ? 13 : undefined }}>
+                      {dayjs(reg.date).format('DD/MM/YYYY')}
+                    </Table.Td>
+                    {!isMobile && (
+                      <Table.Td>
+                        <Badge color={reg.status === 'open' ? 'yellow' : 'green'}>
+                          {reg.status === 'open' ? 'Abierta' : 'Cerrada'}
+                        </Badge>
+                      </Table.Td>
                     )}
-                  </Table.Td>
-                </Table.Tr>
-              )
-            })}
-          </Table.Tbody>
-        </Table>
+                    <Table.Td fw={500} style={{ fontSize: isMobile ? 13 : undefined }}>
+                      {formatCurrency(Number(reg.total_cash_income))}
+                    </Table.Td>
+                    {!isMobile && <Table.Td>{formatCurrency(Number(reg.total_card_income))}</Table.Td>}
+                    <Table.Td c="red" style={{ fontSize: isMobile ? 13 : undefined }}>
+                      {formatCurrency(Number(reg.total_expenses))}
+                    </Table.Td>
+                    {!isMobile && <Table.Td>{formatCurrency(Number(reg.expected_balance))}</Table.Td>}
+                    <Table.Td fw={600} style={{ fontSize: isMobile ? 13 : undefined }}>
+                      {reg.status === 'closed'
+                        ? formatCurrency(Number(reg.closing_balance))
+                        : formatCurrency(net)
+                      }
+                    </Table.Td>
+                    {!isMobile && (
+                      <Table.Td>
+                        {reg.status === 'closed' ? (
+                          <Text c={Number(reg.difference) === 0 ? 'green' : 'orange'}>
+                            {formatCurrency(Number(reg.difference))}
+                          </Text>
+                        ) : (
+                          <Text c="orange">—</Text>
+                        )}
+                      </Table.Td>
+                    )}
+                    {isMobile && (
+                      <Table.Td>
+                        {reg.status === 'open' ? (
+                          <Button
+                            size="compact-xs"
+                            color="yellow"
+                            variant="outline"
+                            onClick={() => {
+                              setClosingRegister(reg)
+                              setClosingBalance(Number(reg.expected_balance))
+                              setCloseNotes('')
+                              openCloseModal()
+                            }}
+                          >
+                            Cerrar
+                          </Button>
+                        ) : (
+                          <Text
+                            size="sm"
+                            c={Number(reg.difference) === 0 ? 'green' : 'orange'}
+                          >
+                            {formatCurrency(Number(reg.difference))}
+                          </Text>
+                        )}
+                      </Table.Td>
+                    )}
+                  </Table.Tr>
+                )
+              })}
+            </Table.Tbody>
+          </Table>
+        </Box>
       )}
     </Box>
   )
