@@ -1246,6 +1246,18 @@ export function AppointmentGrid() {
   const handleDeleteClick = () => {
     if (deleteConfirm) {
       // Second click - confirm delete
+      // Check if appointment already has a ticket
+      if (editingAppointment && tickets.some(t => t.appointment_id === editingAppointment.id)) {
+        notifications.show({
+          title: "No se puede cancelar",
+          message: "Este turno ya tiene un ticket generado. Eliminá el ticket primero.",
+          color: "red",
+        });
+        setDeleteConfirm(false);
+        setDeleteCountdown(5);
+        return;
+      }
+
       deleteAppointment(editingAppointment!.id);
       closeEditModal();
       setNewAppointment({
