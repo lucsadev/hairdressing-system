@@ -6,16 +6,18 @@ import {
   Title, TextInput, Stack
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconSearch } from '@tabler/icons-react'
+import { IconSearch, IconTrash } from '@tabler/icons-react'
 import { useAppointmentStore, Ticket } from '@/store/appointmentStore'
 import { TicketModal } from '@/components/TicketModal'
 import dayjs from 'dayjs'
 
 export default function TicketsPage() {
-  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices } = useAppointmentStore()
+  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices, deleteTicket } = useAppointmentStore()
   const [isClient, setIsClient] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
 
   useEffect(() => {
@@ -168,6 +170,38 @@ export default function TicketsPage() {
           No hay tickets registrados
         </Text>
       )}
+
+      {/* Delete confirmation */}
+      <Modal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar Ticket"
+        centered
+        zIndex={1100}
+      >
+        <Text mb="lg">
+          ¿Estás seguro de eliminar el ticket de <strong>{deleteTarget ? getClientName(deleteTarget.client_id) : ''}</strong> por <strong>${deleteTarget ? deleteTarget.total_amount.toLocaleString('es-AR') : ''}</strong>?
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="red"
+            loading={deleting}
+            onClick={async () => {
+              if (!deleteTarget) return
+              setDeleting(true)
+              await deleteTicket(deleteTarget.id)
+              setDeleting(false)
+              setDeleteTarget(null)
+              fetchTickets()
+            }}
+          >
+            Eliminar
+          </Button>
+        </Group>
+      </Modal>
 
       {/* Edit Ticket Modal */}
       <TicketModal
