@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Badge, Group, Text, Box,
-  Title, TextInput, Stack, ActionIcon, Modal, Button
+  Title, TextInput, Stack
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch, IconTrash } from '@tabler/icons-react'
@@ -84,31 +84,16 @@ export default function TicketsPage() {
                 <Text fw={600} size="sm" lineClamp={1}>
                   {getClientName(ticket.client_id)}
                 </Text>
-                <Group gap={4}>
-                  <Badge
-                    size="sm"
-                    color={
-                      ticket.status === 'completed' ? 'green' :
-                      ticket.status === 'cancelled' ? 'red' : 'yellow'
-                    }
-                  >
-                    {ticket.status === 'completed' ? 'Completado' :
-                     ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
-                  </Badge>
-                  {ticket.status !== 'completed' && (
-                    <ActionIcon
-                      color="red"
-                      variant="subtle"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeleteTarget(ticket)
-                      }}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  )}
-                </Group>
+                <Badge
+                  size="sm"
+                  color={
+                    ticket.status === 'completed' ? 'green' :
+                    ticket.status === 'cancelled' ? 'red' : 'yellow'
+                  }
+                >
+                  {ticket.status === 'completed' ? 'Completado' :
+                   ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
+                </Badge>
               </Group>
               <Group justify="space-between">
                 <Group gap={4}>
@@ -134,7 +119,6 @@ export default function TicketsPage() {
               <Table.Th>Total</Table.Th>
               <Table.Th>Status</Table.Th>
               <Table.Th>Items</Table.Th>
-              <Table.Th style={{ width: 50 }}></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -174,21 +158,6 @@ export default function TicketsPage() {
                   <Text size="sm" c="dimmed">
                     {ticket.ticket_items?.length || 0} items
                   </Text>
-                </Table.Td>
-                <Table.Td>
-                  {ticket.status !== 'completed' && (
-                    <ActionIcon
-                      color="red"
-                      variant="subtle"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setDeleteTarget(ticket)
-                      }}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  )}
                 </Table.Td>
               </Table.Tr>
             ))}
