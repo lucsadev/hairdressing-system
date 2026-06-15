@@ -95,41 +95,41 @@ function CashHistoryContent() {
       </Group>
 
       {history.length > 0 && (
-        <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} mb="lg">
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+        <SimpleGrid cols={{ base: 2, sm: 2, md: 4 }} mb="lg" spacing={isMobile ? 'xs' : 'md'}>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconArrowUpRight size={20} color="green" />
-              <Text size="sm" c="dimmed">Ingresos Efectivo</Text>
+              <IconArrowUpRight size={isMobile ? 16 : 20} color="green" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Efectivo</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="green">
               +{formatCurrency(totals.cashIncome)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconCreditCard size={20} color="violet" />
-              <Text size="sm" c="dimmed">Ingresos Tarjeta</Text>
+              <IconCreditCard size={isMobile ? 16 : 20} color="violet" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Tarjeta</Text>
             </Group>
-            <Text size="xl" fw={700} c="violet">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="violet">
               +{formatCurrency(totals.cardIncome)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconArrowDownRight size={20} color="red" />
-              <Text size="sm" c="dimmed">Gastos</Text>
+              <IconArrowDownRight size={isMobile ? 16 : 20} color="red" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Gastos</Text>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text size={isMobile ? 'md' : 'xl'} fw={700} c="red">
               -{formatCurrency(totals.expenses)}
             </Text>
           </Card>
-          <Card shadow="sm" padding="md" radius="md" withBorder>
+          <Card shadow="sm" padding={isMobile ? 'sm' : 'md'} radius="md" withBorder>
             <Group gap="xs" mb="xs">
-              <IconCash size={20} color="blue" />
-              <Text size="sm" c="dimmed">Neto</Text>
+              <IconCash size={isMobile ? 16 : 20} color="blue" />
+              <Text size={isMobile ? 'xs' : 'sm'} c="dimmed">Neto</Text>
             </Group>
             <Text
-              size="xl"
+              size={isMobile ? 'md' : 'xl'}
               fw={700}
               c={totals.totalIncome - totals.expenses >= 0 ? 'green' : 'red'}
             >
