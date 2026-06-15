@@ -21,6 +21,7 @@ export interface Service {
   duration_minutes: number
   cash: number
   card: number
+  is_active?: boolean
 }
 
 export interface Staff {
@@ -231,7 +232,7 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
       const { data, error } = await database
         .from('staff')
         .select('*')
-        .eq('is_active', true)
+        .order('created_at', { ascending: true })
       
       if (error) {
         console.error('Error fetching staff:', error)
@@ -249,7 +250,7 @@ export const useAppointmentStore = create<AppointmentState>((set, get) => ({
       const { data, error } = await database
         .from('services')
         .select('*')
-        .order('name')
+        .order('created_at', { ascending: true })
       
       if (error) {
         console.error('Error fetching services:', error)

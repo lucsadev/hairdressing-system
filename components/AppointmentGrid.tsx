@@ -575,7 +575,7 @@ function GridCell({
                   padding: "0 8px",
                 },
               }}
-              data={allStaff.map((s) => ({ value: s.id, label: s.name }))}
+              data={allStaff.filter((s) => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             />
           </Box>
         ) : (
@@ -1101,8 +1101,8 @@ export function AppointmentGrid() {
       : null;
 
   const displayedStaff = effectiveStaffId
-    ? staff.filter((s) => s.id === effectiveStaffId)
-    : staff;
+    ? staff.filter((s) => s.id === effectiveStaffId && s.is_active !== false)
+    : staff.filter(s => s.is_active !== false);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -2172,7 +2172,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={services.map((s) => ({
+            data={services.filter(s => s.is_active !== false).map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
             }))}
@@ -2191,7 +2191,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={staff.map((s) => ({ value: s.id, label: s.name }))}
+            data={staff.filter(s => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             value={newAppointment.staff_id || null}
             onChange={(val) => {
               console.log('Staff onChange - value:', val, 'staff:', staff);
@@ -2272,7 +2272,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={services.map((s) => ({
+            data={services.filter(s => s.is_active !== false).map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
             }))}
@@ -2291,7 +2291,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={staff.map((s) => ({ value: s.id, label: s.name }))}
+            data={staff.filter(s => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             value={newAppointment.staff_id || null}
             onChange={(val) =>
               setNewAppointment((prev) => ({

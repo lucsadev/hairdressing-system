@@ -301,7 +301,7 @@ export function TicketModal({
                         }
                       }
                     }}
-                    data={services.map(s => s.name)}
+                    data={services.filter(s => s.is_active !== false).map(s => s.name)}
                     size="xs"
                     placeholder="Servicio o descripción..."
                     comboboxProps={{ withinPortal: false }}
