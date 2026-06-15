@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Badge, Group, Text, Box,
-  Title, TextInput, Stack, Modal, Button
+  Title, TextInput, Stack, Modal, Button, ActionIcon
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch, IconTrash } from '@tabler/icons-react'
