@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Badge, Group, Text, Box,
-  Title, TextInput
+  Title, TextInput, Stack
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { IconSearch } from '@tabler/icons-react'
@@ -64,65 +64,104 @@ export default function TicketsPage() {
         mb="md"
       />
 
-      <Table striped highlightOnHover withTableBorder>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Cliente</Table.Th>
-            {!isMobile && <Table.Th>Fecha</Table.Th>}
-            {!isMobile && <Table.Th>Método</Table.Th>}
-            <Table.Th>Total</Table.Th>
-            <Table.Th>Status</Table.Th>
-            {!isMobile && <Table.Th>Items</Table.Th>}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
+      {isMobile ? (
+        <Stack gap="xs">
           {sortedTickets.map(ticket => (
-            <Table.Tr
+            <Box
               key={ticket.id}
-              style={{ cursor: 'pointer' }}
+              p="sm"
+              style={{
+                border: '1px solid #dee2e6',
+                borderRadius: 8,
+                background: '#fff',
+                cursor: 'pointer'
+              }}
               onClick={() => setSelectedTicket(ticket)}
             >
-              <Table.Td>
-                <Text fw={500}>{getClientName(ticket.client_id)}</Text>
-              </Table.Td>
-              {!isMobile && (
-                <Table.Td>
-                  <Text size="sm">
-                    {dayjs(ticket.created_at).format('DD/MM/YYYY HH:mm')}
-                  </Text>
-                </Table.Td>
-              )}
-              {!isMobile && (
-                <Table.Td>
-                  <Badge color={ticket.payment_method === 'cash' ? 'green' : 'blue'}>
-                    {ticket.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
-                  </Badge>
-                </Table.Td>
-              )}
-              <Table.Td>
-                <Text fw={600}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
-              </Table.Td>
-              <Table.Td>
+              <Group justify="space-between" mb={4}>
+                <Text fw={600} size="sm" lineClamp={1}>
+                  {getClientName(ticket.client_id)}
+                </Text>
                 <Badge
+                  size="sm"
                   color={
                     ticket.status === 'completed' ? 'green' :
                     ticket.status === 'cancelled' ? 'red' : 'yellow'
                   }
                 >
-                  {ticket.status}
+                  {ticket.status === 'completed' ? 'Completado' :
+                   ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
                 </Badge>
-              </Table.Td>
-              {!isMobile && (
+              </Group>
+              <Group justify="space-between">
+                <Group gap={4}>
+                  <Badge size="xs" color={ticket.payment_method === 'cash' ? 'green' : 'blue'} variant="light">
+                    {ticket.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                  </Badge>
+                  <Text size="xs" c="dimmed">
+                    {dayjs(ticket.created_at).format('DD/MM HH:mm')}
+                  </Text>
+                </Group>
+                <Text fw={700}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
+              </Group>
+            </Box>
+          ))}
+        </Stack>
+      ) : (
+        <Table striped highlightOnHover withTableBorder>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Cliente</Table.Th>
+              <Table.Th>Fecha</Table.Th>
+              <Table.Th>Método</Table.Th>
+              <Table.Th>Total</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Items</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {sortedTickets.map(ticket => (
+              <Table.Tr
+                key={ticket.id}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSelectedTicket(ticket)}
+              >
+                <Table.Td>
+                  <Text fw={500}>{getClientName(ticket.client_id)}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm">
+                    {dayjs(ticket.created_at).format('DD/MM/YYYY HH:mm')}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge color={ticket.payment_method === 'cash' ? 'green' : 'blue'}>
+                    {ticket.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Text fw={600}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge
+                    color={
+                      ticket.status === 'completed' ? 'green' :
+                      ticket.status === 'cancelled' ? 'red' : 'yellow'
+                    }
+                  >
+                    {ticket.status}
+                  </Badge>
+                </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">
                     {ticket.ticket_items?.length || 0} items
                   </Text>
                 </Table.Td>
-              )}
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      )}
 
       {sortedTickets.length === 0 && (
         <Text c="dimmed" ta="center" py="xl">
