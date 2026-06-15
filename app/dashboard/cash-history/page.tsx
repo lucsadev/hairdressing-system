@@ -3,22 +3,30 @@
 import { useEffect, useState } from 'react'
 import {
   Box, Title, Text, Group, Card, Table, Badge, SegmentedControl,
-  SimpleGrid, LoadingOverlay, Select
+  SimpleGrid, LoadingOverlay, Select, Button, Modal, NumberInput,
+  Stack, Textarea
 } from '@mantine/core'
+import { useDisclosure } from '@mantine/hooks'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconCash, IconArrowUpRight, IconArrowDownRight, IconCreditCard } from '@tabler/icons-react'
-import { useCashRegisterStore } from '@/store/cashRegisterStore'
+import { IconCash, IconArrowUpRight, IconArrowDownRight, IconCreditCard, IconDoorExit } from '@tabler/icons-react'
+import { useCashRegisterStore, type CashRegister } from '@/store/cashRegisterStore'
 import dayjs from 'dayjs'
+import { notifications } from '@mantine/notifications'
 
 function CashHistoryContent() {
-  const { history, loading, fetchHistory } = useCashRegisterStore()
+  const { history, loading, fetchHistory, closeRegister } = useCashRegisterStore()
   const [isClient, setIsClient] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly')
   const currentYear = dayjs().year()
   const [selectedYear, setSelectedYear] = useState(currentYear)
   const [selectedMonth, setSelectedMonth] = useState<number | null>(dayjs().month() + 1)
+  const [closeModalOpened, { open: openCloseModal, close: closeCloseModal }] = useDisclosure(false)
+  const [closingRegister, setClosingRegister] = useState<CashRegister | null>(null)
+  const [closingBalance, setClosingBalance] = useState<number>(0)
+  const [closeNotes, setCloseNotes] = useState('')
+  const [closing, setClosing] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -131,6 +139,63 @@ function CashHistoryContent() {
         </SimpleGrid>
       )}
 
+      <Modal
+        opened={closeModalOpened}
+        onClose={closeCloseModal}
+        title={`Cerrar Caja - ${closingRegister ? dayjs(closingRegister.date).format('DD/MM/YYYY') : ''}`}
+        centered
+        zIndex={1100}
+      >
+        <Stack>
+          <Text size="sm" c="dimmed">
+            Balance esperado: {formatCurrency(Number(closingRegister?.expected_balance || 0))}
+          </Text>
+          <NumberInput
+            label="Balance de cierre"
+            value={closingBalance}
+            onChange={(val) => setClosingBalance(Number(val))}
+            min={0}
+            required
+          />
+          {closingRegister && closingBalance !== Number(closingRegister.expected_balance) && (
+            <Text size="sm" c="orange">
+              Diferencia: {formatCurrency(closingBalance - Number(closingRegister.expected_balance))}
+            </Text>
+          )}
+          <Textarea
+            label="Notas"
+            value={closeNotes}
+            onChange={(e) => setCloseNotes(e.currentTarget.value)}
+            placeholder="Opcional"
+            rows={3}
+          />
+          <Group grow>
+            <Button variant="outline" onClick={closeCloseModal}>
+              Cancelar
+            </Button>
+            <Button
+              color="yellow"
+              loading={closing}
+              onClick={async () => {
+                if (!closingRegister) return
+                setClosing(true)
+                const { error } = await closeRegister(closingRegister.id, closingBalance, closeNotes || undefined)
+                setClosing(false)
+                closeCloseModal()
+                if (error) {
+                  notifications.show({ title: 'Error', message: error, color: 'red' })
+                } else {
+                  notifications.show({ title: 'Caja cerrada', message: 'Caja cerrada correctamente', color: 'green' })
+                  fetchHistory(selectedYear, viewMode === 'monthly' ? selectedMonth || undefined : undefined)
+                }
+              }}
+            >
+              Cerrar Caja
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
       {sortedHistory.length === 0 ? (
         <Text c="dimmed" ta="center" py="xl">
           No hay registros de caja en este período
@@ -176,7 +241,21 @@ function CashHistoryContent() {
                       <Text c={Number(reg.difference) === 0 ? 'green' : 'orange'}>
                         {formatCurrency(Number(reg.difference))}
                       </Text>
-                    ) : '-'}
+                    ) : (
+                      <Button
+                        size="xs"
+                        color="yellow"
+                        variant="outline"
+                        onClick={() => {
+                          setClosingRegister(reg)
+                          setClosingBalance(Number(reg.expected_balance))
+                          setCloseNotes('')
+                          openCloseModal()
+                        }}
+                      >
+                        Cerrar
+                      </Button>
+                    )}
                   </Table.Td>
                 </Table.Tr>
               )
