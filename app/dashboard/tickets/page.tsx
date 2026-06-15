@@ -3,19 +3,21 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Badge, Group, Text, Box,
-  Title, TextInput, Stack
+  Title, TextInput, Stack, ActionIcon, Modal, Button
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconSearch } from '@tabler/icons-react'
+import { IconSearch, IconTrash } from '@tabler/icons-react'
 import { useAppointmentStore, Ticket } from '@/store/appointmentStore'
 import { TicketModal } from '@/components/TicketModal'
 import dayjs from 'dayjs'
 
 export default function TicketsPage() {
-  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices } = useAppointmentStore()
+  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices, deleteTicket } = useAppointmentStore()
   const [isClient, setIsClient] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
 
   useEffect(() => {
@@ -82,16 +84,31 @@ export default function TicketsPage() {
                 <Text fw={600} size="sm" lineClamp={1}>
                   {getClientName(ticket.client_id)}
                 </Text>
-                <Badge
-                  size="sm"
-                  color={
-                    ticket.status === 'completed' ? 'green' :
-                    ticket.status === 'cancelled' ? 'red' : 'yellow'
-                  }
-                >
-                  {ticket.status === 'completed' ? 'Completado' :
-                   ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
-                </Badge>
+                <Group gap={4}>
+                  <Badge
+                    size="sm"
+                    color={
+                      ticket.status === 'completed' ? 'green' :
+                      ticket.status === 'cancelled' ? 'red' : 'yellow'
+                    }
+                  >
+                    {ticket.status === 'completed' ? 'Completado' :
+                     ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
+                  </Badge>
+                  {ticket.status !== 'completed' && (
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(ticket)
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  )}
+                </Group>
               </Group>
               <Group justify="space-between">
                 <Group gap={4}>
@@ -117,6 +134,7 @@ export default function TicketsPage() {
               <Table.Th>Total</Table.Th>
               <Table.Th>Status</Table.Th>
               <Table.Th>Items</Table.Th>
+              <Table.Th style={{ width: 50 }}></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -157,6 +175,21 @@ export default function TicketsPage() {
                     {ticket.ticket_items?.length || 0} items
                   </Text>
                 </Table.Td>
+                <Table.Td>
+                  {ticket.status !== 'completed' && (
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(ticket)
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  )}
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
@@ -168,6 +201,38 @@ export default function TicketsPage() {
           No hay tickets registrados
         </Text>
       )}
+
+      {/* Delete confirmation */}
+      <Modal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar Ticket"
+        centered
+        zIndex={1100}
+      >
+        <Text mb="lg">
+          ¿Estás seguro de eliminar el ticket de <strong>{deleteTarget ? getClientName(deleteTarget.client_id) : ''}</strong> por <strong>${deleteTarget ? deleteTarget.total_amount.toLocaleString('es-AR') : ''}</strong>?
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="red"
+            loading={deleting}
+            onClick={async () => {
+              if (!deleteTarget) return
+              setDeleting(true)
+              await deleteTicket(deleteTarget.id)
+              setDeleting(false)
+              setDeleteTarget(null)
+              fetchTickets()
+            }}
+          >
+            Eliminar
+          </Button>
+        </Group>
+      </Modal>
 
       {/* Edit Ticket Modal */}
       <TicketModal
