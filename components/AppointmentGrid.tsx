@@ -604,9 +604,7 @@ function GridCell({
               dayjs(slotTimeLocal).isAfter(
                 dayjs(slot.start_time).subtract(1, "minute"),
               ) &&
-              dayjs(slotTimeLocal).isBefore(
-                dayjs(slot.end_time).add(1, "minute"),
-              ),
+              dayjs(slotTimeLocal).isBefore(dayjs(slot.end_time)),
           );
 
           return (
