@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { auth, setSessionToken, setAuthCookie, database, storeCredentials, clearCredentials, reauthenticate, hasStoredCredentials } from '@/lib/insforge'
 
+const SESSION_KEY = 'krear_session'
+
 interface User {
   id: string
   email: string
@@ -75,6 +77,9 @@ signIn: async (email: string, password: string) => {
         storeCredentials(email, password)
         console.log('[authStore] Credentials stored')
 
+        // Mark this tab session as active (survives refresh, cleared on tab close)
+        try { sessionStorage.setItem(SESSION_KEY, 'active') } catch {} 
+
         // Set token FIRST so database requests work
         if (data.accessToken) {
           console.log('signIn - accessToken:', data.accessToken)
@@ -108,6 +113,7 @@ signIn: async (email: string, password: string) => {
     try {
       await auth.signOut()
       clearCredentials() // Clear stored credentials on sign out
+      try { sessionStorage.removeItem(SESSION_KEY) } catch {}
       set({ user: null })
       setSessionToken(null)
     } catch (err) {
@@ -137,6 +143,15 @@ signIn: async (email: string, password: string) => {
           return
         }
         
+        // If sessionStorage flag is missing, this is a new tab/window → don't auto-login
+        const hasSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_KEY) === 'active'
+        if (!hasSession) {
+          clearCredentials()
+          setSessionToken(null)
+          set({ user: null, initialized: true, sessionExpired: false })
+          return
+        }
+
         // Otherwise try to re-authenticate with stored credentials
         const reauthed = await reauthenticate()
         if (reauthed) {
@@ -162,6 +177,9 @@ signIn: async (email: string, password: string) => {
       }
 
       if (user) {
+        // Mark this tab session so refresh vs. new-tab works
+        try { sessionStorage.setItem(SESSION_KEY, 'active') } catch {}
+
         // Fetch role from profiles
         try {
           const { data: profiles } = await database.from('profiles').select('role').eq('email', user.email!).single()
