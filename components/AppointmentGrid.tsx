@@ -646,7 +646,8 @@ function GridCell({
           const startMinute = startTime.minute();
           const durationMinutes = endTime.diff(startTime, "minute");
 
-          const heightPercent = (durationMinutes / 750) * 100;
+          // Subtract 0.15% to leave a tiny gap at the bottom and avoid overlapping the next cell
+          const heightPercent = Math.max((durationMinutes / 750) * 100 - 0.15, 2);
           const topPercent = (((startHour - 9) * 60 + startMinute) / 750) * 100;
 
           return (
