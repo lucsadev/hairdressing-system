@@ -12,13 +12,13 @@ const adminNavItems = [
   { label: "Usuarios", href: "/dashboard/users", icon: IconUser },
   { label: "Caja", href: "/dashboard/cash-register", icon: IconCash },
   { label: "Historial", href: "/dashboard/cash-history", icon: IconHistory },
+  { label: "Proveedores", href: "/dashboard/suppliers", icon: IconPackage },
+  { label: "Pedidos", href: "/dashboard/orders", icon: IconShoppingCart },
 ];
 
 // Visible to all authenticated users (not protected but accessible)
 const allUsersNavItems = [
   { label: "Clientes", href: "/dashboard/clients", icon: IconUsers },
-  { label: "Proveedores", href: "/dashboard/suppliers", icon: IconPackage },
-  { label: "Pedidos", href: "/dashboard/orders", icon: IconShoppingCart },
 ];
 
 const baseNavItems = [

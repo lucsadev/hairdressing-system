@@ -16,7 +16,9 @@ const ADMIN_ROUTES = [
   '/dashboard/staff',
   '/dashboard/services',
   '/dashboard/cash-register',
-  '/dashboard/cash-history'
+  '/dashboard/cash-history',
+  '/dashboard/suppliers',
+  '/dashboard/orders'
 ]
 
 export function ProtectedRoute({ 

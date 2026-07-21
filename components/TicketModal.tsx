@@ -6,8 +6,9 @@ import {
   Stack,
   Text,
   Table, NumberInput, Button, Group,
-  Radio, ActionIcon, Box, Badge, Select, TextInput, Autocomplete
+  Radio, ActionIcon, Box, Badge, Select, TextInput, Autocomplete, SimpleGrid
 } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { IconTrash, IconPlus } from '@tabler/icons-react'
 import { useAppointmentStore, Service, Appointment, Ticket, TicketItem } from '@/store/appointmentStore'
 
@@ -56,6 +57,7 @@ export function TicketModal({
 }: TicketModalProps) {
   const { createTicket, updateTicket, services, staff } = useAppointmentStore()
   const [saving, setSaving] = useState(false)
+  const isMobile = useMediaQuery('(max-width: 500px)')
 
   // Payment method: cash or card
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>(ticket?.payment_method || 'cash')
@@ -250,9 +252,10 @@ export function TicketModal({
       onClose={handleClose}
       title={mode === 'edit' ? 'Editar Ticket' : 'Generar Ticket'}
       size="lg"
+      fullScreen={isMobile}
       zIndex={1100}
     >
-      <Stack>
+      <Stack px={isMobile ? 0 : undefined}>
         {/* Client info */}
         {clientName && (
           <Badge color="cyan" size="lg">
@@ -267,21 +270,20 @@ export function TicketModal({
           </Badge>
         )}
 
-        {/* Items table */}
-        <Table striped highlightOnHover withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Servicio</Table.Th>
-              <Table.Th style={{ width: 140 }}>Staff</Table.Th>
-              <Table.Th style={{ width: 120 }}>Precio Unit.</Table.Th>
-              <Table.Th style={{ width: 120 }}>Subtotal</Table.Th>
-              <Table.Th style={{ width: 50 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
+        {/* Items */}
+        {isMobile ? (
+          <Stack gap="xs">
             {items.map(item => (
-              <Table.Tr key={item.id}>
-                <Table.Td>
+              <Box
+                key={item.id}
+                p="xs"
+                style={{
+                  border: '1px solid #dee2e6',
+                  borderRadius: 8,
+                  background: '#fff'
+                }}
+              >
+                <Stack gap={6}>
                   <Autocomplete
                     value={item.service_id ? (services.find(s => s.id === item.service_id)?.name || '') : (item.custom_name || '')}
                     onChange={(val) => {
@@ -301,51 +303,121 @@ export function TicketModal({
                         }
                       }
                     }}
-                    data={services.map(s => s.name)}
+                    data={services.filter(s => s.is_active !== false).map(s => s.name)}
                     size="xs"
                     placeholder="Servicio o descripción..."
                     comboboxProps={{ withinPortal: false }}
                   />
-                </Table.Td>
-                <Table.Td>
-                  <Select
-                    value={item.staff_id || ''}
-                    onChange={(val) => updateItem(item.id, 'staff_id', val || null)}
-                    data={staff.map(s => ({ value: s.id, label: s.name }))}
-                    size="xs"
-                    placeholder="Staff..."
-                    clearable
-                    comboboxProps={{ withinPortal: false }}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <NumberInput
-                    value={item.unit_price}
-                    onChange={(val) => updateItem(item.id, 'unit_price', Number(val))}
-                    min={0}
-                    decimalScale={2}
-                    prefix="$"
-                    size="xs"
-                    hideControls
-                    styles={{ input: { width: 90 } }}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <Text fw={500}>${item.subtotal.toLocaleString('es-AR')}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <ActionIcon
-                    color="red"
-                    variant="subtle"
-                    onClick={() => removeItem(item.id)}
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Table.Td>
-              </Table.Tr>
+                  <Group grow gap="xs">
+                    <Select
+                      value={item.staff_id || ''}
+                      onChange={(val) => updateItem(item.id, 'staff_id', val || null)}
+                      data={staff.map(s => ({ value: s.id, label: s.name }))}
+                      size="xs"
+                      placeholder="Staff..."
+                      clearable
+                      comboboxProps={{ withinPortal: false }}
+                    />
+                    <NumberInput
+                      value={item.unit_price}
+                      onChange={(val) => updateItem(item.id, 'unit_price', Number(val))}
+                      min={0}
+                      decimalScale={2}
+                      prefix="$"
+                      size="xs"
+                      hideControls
+                    />
+                  </Group>
+                  <Group gap="xs" justify="space-between">
+                    <Text size="sm" fw={600}>
+                      Subtotal: ${item.subtotal.toLocaleString('es-AR')}
+                    </Text>
+                    <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)}>
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Stack>
+              </Box>
             ))}
-          </Table.Tbody>
-        </Table>
+          </Stack>
+        ) : (
+          <Box style={{ overflowX: 'auto' }}>
+            <Table striped highlightOnHover withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Servicio</Table.Th>
+                  <Table.Th style={{ width: 140 }}>Staff</Table.Th>
+                  <Table.Th style={{ width: 120 }}>Precio Unit.</Table.Th>
+                  <Table.Th style={{ width: 120 }}>Subtotal</Table.Th>
+                  <Table.Th style={{ width: 50 }}></Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {items.map(item => (
+                  <Table.Tr key={item.id}>
+                    <Table.Td>
+                      <Autocomplete
+                        value={item.service_id ? (services.find(s => s.id === item.service_id)?.name || '') : (item.custom_name || '')}
+                        onChange={(val) => {
+                          const matched = services.find(s => s.name.toLowerCase() === val.toLowerCase())
+                          if (matched) {
+                            updateItem(item.id, 'service_id', matched.id)
+                            const price = paymentMethod === 'cash' ? matched.cash : matched.card
+                            updateItem(item.id, 'unit_price', price)
+                            updateItem(item.id, 'subtotal', price)
+                            updateItem(item.id, 'custom_name', undefined)
+                          } else {
+                            updateItem(item.id, 'service_id', null)
+                            updateItem(item.id, 'custom_name', val || undefined)
+                            if (!val) {
+                              updateItem(item.id, 'unit_price', 0)
+                              updateItem(item.id, 'subtotal', 0)
+                            }
+                          }
+                        }}
+                        data={services.filter(s => s.is_active !== false).map(s => s.name)}
+                        size="xs"
+                        placeholder="Servicio o descripción..."
+                        comboboxProps={{ withinPortal: false }}
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <Select
+                        value={item.staff_id || ''}
+                        onChange={(val) => updateItem(item.id, 'staff_id', val || null)}
+                        data={staff.map(s => ({ value: s.id, label: s.name }))}
+                        size="xs"
+                        placeholder="Staff..."
+                        clearable
+                        comboboxProps={{ withinPortal: false }}
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <NumberInput
+                        value={item.unit_price}
+                        onChange={(val) => updateItem(item.id, 'unit_price', Number(val))}
+                        min={0}
+                        decimalScale={2}
+                        prefix="$"
+                        size="xs"
+                        hideControls
+                        styles={{ input: { width: 90 } }}
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <Text fw={500}>${item.subtotal.toLocaleString('es-AR')}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <ActionIcon color="red" variant="subtle" onClick={() => removeItem(item.id)}>
+                        <IconTrash size={16} />
+                      </ActionIcon>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Box>
+        )}
 
         {/* Add extra button */}
         <Button
@@ -380,12 +452,28 @@ export function TicketModal({
         </Box>
 
         {/* Actions */}
-        <Group justify="space-between">
-          <Box>
-            {mode === 'edit' && ticket && ticket.status !== 'completed' && (
+        {isMobile ? (
+          <Stack gap="xs">
+            <Group grow>
+              <Button variant="outline" onClick={handleClose} size="sm">
+                Cancelar
+              </Button>
               <Button
                 color="green"
+                onClick={handleSave}
+                loading={saving}
+                disabled={items.length === 0}
+                size="sm"
+              >
+                {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
+              </Button>
+            </Group>
+            {mode === 'edit' && ticket && ticket.status !== 'completed' && (
+              <Button
+                color="blue"
                 variant="filled"
+                fullWidth
+                size="sm"
                 onClick={async () => {
                   if (!ticket) return
                   const result = await updateTicket(ticket.id, { status: 'completed' })
@@ -394,26 +482,47 @@ export function TicketModal({
                     onClose()
                   }
                 }}
-                size="sm"
               >
                 Marcar como Completado
               </Button>
             )}
-          </Box>
-          <Group>
-            <Button variant="outline" onClick={handleClose}>
-              Cancelar
-            </Button>
-            <Button
-              color="green"
-              onClick={handleSave}
-              loading={saving}
-              disabled={items.length === 0}
-            >
-              {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
-            </Button>
+          </Stack>
+        ) : (
+          <Group justify="space-between">
+            <Box>
+              {mode === 'edit' && ticket && ticket.status !== 'completed' && (
+                <Button
+                  color="blue"
+                  variant="filled"
+                  onClick={async () => {
+                    if (!ticket) return
+                    const result = await updateTicket(ticket.id, { status: 'completed' })
+                    if (!result.error) {
+                      onTicketUpdated?.()
+                      onClose()
+                    }
+                  }}
+                  size="sm"
+                >
+                  Marcar como Completado
+                </Button>
+              )}
+            </Box>
+            <Group>
+              <Button variant="outline" onClick={handleClose}>
+                Cancelar
+              </Button>
+              <Button
+                color="green"
+                onClick={handleSave}
+                loading={saving}
+                disabled={items.length === 0}
+              >
+                {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
+              </Button>
+            </Group>
           </Group>
-        </Group>
+        )}
       </Stack>
     </Modal>
   )

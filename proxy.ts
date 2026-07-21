@@ -9,7 +9,9 @@ const ADMIN_ROUTES = [
   '/dashboard/staff',
   '/dashboard/services', 
   '/dashboard/clients',
-  '/dashboard/usuarios'
+  '/dashboard/usuarios',
+  '/dashboard/suppliers',
+  '/dashboard/orders'
 ]
 
 // Public routes (no auth required)

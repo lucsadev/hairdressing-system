@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { auth, setSessionToken, setAuthCookie, database, storeCredentials, clearCredentials, reauthenticate, hasStoredCredentials } from '@/lib/insforge'
 
+const SESSION_KEY = 'krear_session'
+
 interface User {
   id: string
   email: string
@@ -41,7 +43,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       if (data?.user) {
-        set({ user: { id: data.user.id, email: data.user.email!, email_confirmed_at: null } })
+        let userRole: 'ADMIN' | 'USER' | undefined = undefined
+        
+        // After signup, fetch role from profiles table
+        try {
+          const { data: profiles } = await database
+            .from('profiles')
+            .select('role')
+            .ilike('email', email)
+            .single()
+          
+          if (profiles?.role) {
+            userRole = profiles.role as 'ADMIN' | 'USER'
+            console.log('[authStore] Found user role during signup:', userRole)
+          }
+        } catch (profileErr) {
+          console.log('Profile fetch error during signup:', profileErr)
+        }
+        
+        // Set user with role if found
+        const userObject: any = { id: data.user.id, email: data.user.email!, email_confirmed_at: null }
+        if (userRole) {
+          userObject.role = userRole
+        }
+        
+        set({ user: userObject })
         if (data.accessToken) {
           setSessionToken(data.accessToken)
         }
@@ -75,6 +101,9 @@ signIn: async (email: string, password: string) => {
         storeCredentials(email, password)
         console.log('[authStore] Credentials stored')
 
+        // Mark this tab session as active (survives refresh, cleared on tab close)
+        try { sessionStorage.setItem(SESSION_KEY, 'active') } catch {} 
+
         // Set token FIRST so database requests work
         if (data.accessToken) {
           console.log('signIn - accessToken:', data.accessToken)
@@ -83,7 +112,7 @@ signIn: async (email: string, password: string) => {
 
         // Now fetch role from profiles table (token is set)
         try {
-          const { data: profiles, error: profileError } = await database.from('profiles').select('role').eq('email', email).single()
+          const { data: profiles, error: profileError } = await database.from('profiles').select('role').ilike('email', email).single()
           console.log('profile data:', profiles, 'error:', profileError)
           const role = profiles?.role as 'ADMIN' | 'USER'
 
@@ -108,6 +137,7 @@ signIn: async (email: string, password: string) => {
     try {
       await auth.signOut()
       clearCredentials() // Clear stored credentials on sign out
+      try { sessionStorage.removeItem(SESSION_KEY) } catch {}
       set({ user: null })
       setSessionToken(null)
     } catch (err) {
@@ -137,6 +167,15 @@ signIn: async (email: string, password: string) => {
           return
         }
         
+        // If sessionStorage flag is missing, this is a new tab/window → don't auto-login
+        const hasSession = typeof sessionStorage !== 'undefined' && sessionStorage.getItem(SESSION_KEY) === 'active'
+        if (!hasSession) {
+          clearCredentials()
+          setSessionToken(null)
+          set({ user: null, initialized: true, sessionExpired: false })
+          return
+        }
+
         // Otherwise try to re-authenticate with stored credentials
         const reauthed = await reauthenticate()
         if (reauthed) {
@@ -144,7 +183,7 @@ signIn: async (email: string, password: string) => {
           const retry = await auth.getCurrentUser()
           if (retry.data?.user) {
             try {
-              const { data: profiles } = await database.from('profiles').select('role').eq('email', retry.data.user.email!).single()
+              const { data: profiles } = await database.from('profiles').select('role').ilike('email', retry.data.user.email!).single()
               const role = profiles?.role as 'ADMIN' | 'USER'
               set({ user: { id: retry.data.user.id, email: retry.data.user.email!, email_confirmed_at: null, role }, initialized: true })
             } catch {
@@ -162,9 +201,12 @@ signIn: async (email: string, password: string) => {
       }
 
       if (user) {
+        // Mark this tab session so refresh vs. new-tab works
+        try { sessionStorage.setItem(SESSION_KEY, 'active') } catch {}
+
         // Fetch role from profiles
         try {
-          const { data: profiles } = await database.from('profiles').select('role').eq('email', user.email!).single()
+          const { data: profiles } = await database.from('profiles').select('role').ilike('email', user.email!).single()
           const role = profiles?.role as 'ADMIN' | 'USER'
           console.log('initAuth - got user with role:', role)
           set({ user: { id: user.id, email: user.email!, email_confirmed_at: null, role }, initialized: true })

@@ -3,19 +3,21 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Badge, Group, Text, Box,
-  Title, TextInput
+  Title, TextInput, Stack, Modal, Button, ActionIcon
 } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconSearch } from '@tabler/icons-react'
+import { IconSearch, IconTrash } from '@tabler/icons-react'
 import { useAppointmentStore, Ticket } from '@/store/appointmentStore'
 import { TicketModal } from '@/components/TicketModal'
 import dayjs from 'dayjs'
 
 export default function TicketsPage() {
-  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices } = useAppointmentStore()
+  const { tickets, clients, services, fetchTickets, fetchClients, fetchServices, deleteTicket } = useAppointmentStore()
   const [isClient, setIsClient] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Ticket | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
 
   useEffect(() => {
@@ -64,71 +66,173 @@ export default function TicketsPage() {
         mb="md"
       />
 
-      <Table striped highlightOnHover withTableBorder>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Cliente</Table.Th>
-            {!isMobile && <Table.Th>Fecha</Table.Th>}
-            {!isMobile && <Table.Th>Método</Table.Th>}
-            <Table.Th>Total</Table.Th>
-            <Table.Th>Status</Table.Th>
-            {!isMobile && <Table.Th>Items</Table.Th>}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
+      {isMobile ? (
+        <Stack gap="xs">
           {sortedTickets.map(ticket => (
-            <Table.Tr
+            <Box
               key={ticket.id}
-              style={{ cursor: 'pointer' }}
+              p="sm"
+              style={{
+                border: '1px solid #dee2e6',
+                borderRadius: 8,
+                background: '#fff',
+                cursor: 'pointer'
+              }}
               onClick={() => setSelectedTicket(ticket)}
             >
-              <Table.Td>
-                <Text fw={500}>{getClientName(ticket.client_id)}</Text>
-              </Table.Td>
-              {!isMobile && (
+              <Group justify="space-between" mb={4}>
+                <Text fw={600} size="sm" lineClamp={1}>
+                  {getClientName(ticket.client_id)}
+                </Text>
+                <Group gap={4}>
+                  <Badge
+                    size="sm"
+                    color={
+                      ticket.status === 'completed' ? 'green' :
+                      ticket.status === 'cancelled' ? 'red' : 'yellow'
+                    }
+                  >
+                    {ticket.status === 'completed' ? 'Completado' :
+                     ticket.status === 'cancelled' ? 'Cancelado' : 'Pendiente'}
+                  </Badge>
+                  {ticket.status !== 'completed' && (
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(ticket)
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  )}
+                </Group>
+              </Group>
+              <Group justify="space-between">
+                <Group gap={4}>
+                  <Badge size="xs" color={ticket.payment_method === 'cash' ? 'green' : 'blue'} variant="light">
+                    {ticket.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
+                  </Badge>
+                  <Text size="xs" c="dimmed">
+                    {dayjs(ticket.created_at).format('DD/MM HH:mm')}
+                  </Text>
+                </Group>
+                <Text fw={700}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
+              </Group>
+            </Box>
+          ))}
+        </Stack>
+      ) : (
+        <Table striped highlightOnHover withTableBorder>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Cliente</Table.Th>
+              <Table.Th>Fecha</Table.Th>
+              <Table.Th>Método</Table.Th>
+              <Table.Th>Total</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th>Items</Table.Th>
+              <Table.Th style={{ width: 50 }}></Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {sortedTickets.map(ticket => (
+              <Table.Tr
+                key={ticket.id}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSelectedTicket(ticket)}
+              >
+                <Table.Td>
+                  <Text fw={500}>{getClientName(ticket.client_id)}</Text>
+                </Table.Td>
                 <Table.Td>
                   <Text size="sm">
                     {dayjs(ticket.created_at).format('DD/MM/YYYY HH:mm')}
                   </Text>
                 </Table.Td>
-              )}
-              {!isMobile && (
                 <Table.Td>
                   <Badge color={ticket.payment_method === 'cash' ? 'green' : 'blue'}>
                     {ticket.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}
                   </Badge>
                 </Table.Td>
-              )}
-              <Table.Td>
-                <Text fw={600}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
-              </Table.Td>
-              <Table.Td>
-                <Badge
-                  color={
-                    ticket.status === 'completed' ? 'green' :
-                    ticket.status === 'cancelled' ? 'red' : 'yellow'
-                  }
-                >
-                  {ticket.status}
-                </Badge>
-              </Table.Td>
-              {!isMobile && (
+                <Table.Td>
+                  <Text fw={600}>${ticket.total_amount.toLocaleString('es-AR')}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge
+                    color={
+                      ticket.status === 'completed' ? 'green' :
+                      ticket.status === 'cancelled' ? 'red' : 'yellow'
+                    }
+                  >
+                    {ticket.status}
+                  </Badge>
+                </Table.Td>
                 <Table.Td>
                   <Text size="sm" c="dimmed">
                     {ticket.ticket_items?.length || 0} items
                   </Text>
                 </Table.Td>
-              )}
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+                <Table.Td>
+                  {ticket.status !== 'completed' && (
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(ticket)
+                      }}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  )}
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+        </Table>
+      )}
 
       {sortedTickets.length === 0 && (
         <Text c="dimmed" ta="center" py="xl">
           No hay tickets registrados
         </Text>
       )}
+
+      {/* Delete confirmation */}
+      <Modal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar Ticket"
+        centered
+        zIndex={1100}
+      >
+        <Text mb="lg">
+          ¿Estás seguro de eliminar el ticket de <strong>{deleteTarget ? getClientName(deleteTarget.client_id) : ''}</strong> por <strong>${deleteTarget ? deleteTarget.total_amount.toLocaleString('es-AR') : ''}</strong>?
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+            Cancelar
+          </Button>
+          <Button
+            color="red"
+            loading={deleting}
+            onClick={async () => {
+              if (!deleteTarget) return
+              setDeleting(true)
+              await deleteTicket(deleteTarget.id)
+              setDeleting(false)
+              setDeleteTarget(null)
+              fetchTickets()
+            }}
+          >
+            Eliminar
+          </Button>
+        </Group>
+      </Modal>
 
       {/* Edit Ticket Modal */}
       <TicketModal

@@ -575,7 +575,7 @@ function GridCell({
                   padding: "0 8px",
                 },
               }}
-              data={allStaff.map((s) => ({ value: s.id, label: s.name }))}
+              data={allStaff.filter((s) => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             />
           </Box>
         ) : (
@@ -604,9 +604,7 @@ function GridCell({
               dayjs(slotTimeLocal).isAfter(
                 dayjs(slot.start_time).subtract(1, "minute"),
               ) &&
-              dayjs(slotTimeLocal).isBefore(
-                dayjs(slot.end_time).add(1, "minute"),
-              ),
+              dayjs(slotTimeLocal).isBefore(dayjs(slot.end_time)),
           );
 
           return (
@@ -646,7 +644,8 @@ function GridCell({
           const startMinute = startTime.minute();
           const durationMinutes = endTime.diff(startTime, "minute");
 
-          const heightPercent = (durationMinutes / 750) * 100;
+          // Subtract 0.15% to leave a tiny gap at the bottom and avoid overlapping the next cell
+          const heightPercent = Math.max((durationMinutes / 750) * 100 - 0.15, 2);
           const topPercent = (((startHour - 9) * 60 + startMinute) / 750) * 100;
 
           return (
@@ -1101,8 +1100,8 @@ export function AppointmentGrid() {
       : null;
 
   const displayedStaff = effectiveStaffId
-    ? staff.filter((s) => s.id === effectiveStaffId)
-    : staff;
+    ? staff.filter((s) => s.id === effectiveStaffId && s.is_active !== false)
+    : staff.filter(s => s.is_active !== false);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -1246,6 +1245,18 @@ export function AppointmentGrid() {
   const handleDeleteClick = () => {
     if (deleteConfirm) {
       // Second click - confirm delete
+      // Check if appointment already has a ticket
+      if (editingAppointment && tickets.some(t => t.appointment_id === editingAppointment.id)) {
+        notifications.show({
+          title: "No se puede cancelar",
+          message: "Este turno ya tiene un ticket generado. Eliminá el ticket primero.",
+          color: "red",
+        });
+        setDeleteConfirm(false);
+        setDeleteCountdown(5);
+        return;
+      }
+
       deleteAppointment(editingAppointment!.id);
       closeEditModal();
       setNewAppointment({
@@ -2172,7 +2183,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={services.map((s) => ({
+            data={services.filter(s => s.is_active !== false).map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
             }))}
@@ -2191,7 +2202,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={staff.map((s) => ({ value: s.id, label: s.name }))}
+            data={staff.filter(s => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             value={newAppointment.staff_id || null}
             onChange={(val) => {
               console.log('Staff onChange - value:', val, 'staff:', staff);
@@ -2272,7 +2283,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={services.map((s) => ({
+            data={services.filter(s => s.is_active !== false).map((s) => ({
               value: s.id,
               label: `${s.name} (${s.duration_minutes}min - Efvo: ${s.cash} / Tarj: ${s.card})`,
             }))}
@@ -2291,7 +2302,7 @@ export function AppointmentGrid() {
             required
             searchable
             nothingFoundMessage="Sin resultados"
-            data={staff.map((s) => ({ value: s.id, label: s.name }))}
+            data={staff.filter(s => s.is_active !== false).map((s) => ({ value: s.id, label: s.name }))}
             value={newAppointment.staff_id || null}
             onChange={(val) =>
               setNewAppointment((prev) => ({

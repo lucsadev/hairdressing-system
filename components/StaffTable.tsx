@@ -1,34 +1,27 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack } from '@mantine/core'
+import { Box, Table, TextInput, Button, Group, Title, ActionIcon, Modal, Stack, Switch } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
-import { Staff } from './../store/appointmentStore';
+import { useAppointmentStore } from '@/store/appointmentStore'
 import { IconPlus } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
 
-/* interface Staff {
-  id: string
-  name: string
-  address: string | null
-  phone: string | null
-  color: string
-  is_active: boolean
-}
- */
 export function StaffTable() {
-  const [staff, setStaff] = useState<Staff[]>([])
-  const [loading, setLoading] = useState(true)
+  const staff = useAppointmentStore((s) => s.staff)
+  const storeFetchStaff = useAppointmentStore((s) => s.fetchStaff)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
-  const [editingStaff, setEditingStaff] = useState<Staff | null>(null)
+  const [editingStaff, setEditingStaff] = useState<typeof staff[number] | null>(null)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [isClient, setIsClient] = useState(false)
-  
+  const [toggling, setToggling] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     setIsClient(true)
   }, [])
-  
+
   const [form, setForm] = useState({
     name: '',
     address: '',
@@ -36,28 +29,9 @@ export function StaffTable() {
     color: '#1971c2'
   })
 
-  const fetchStaff = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await database
-        .from('staff')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
-      
-      if (!error && data) {
-        setStaff(data)
-      }
-    } catch (err) {
-      console.error('Error fetching staff:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchStaff()
-  }, [])
+    storeFetchStaff()
+  }, [storeFetchStaff])
 
   const handleOpenNew = () => {
     setEditingStaff(null)
@@ -65,7 +39,7 @@ export function StaffTable() {
     openModal()
   }
 
-  const handleOpenEdit = (member: Staff) => {
+  const handleOpenEdit = (member: typeof staff[number]) => {
     setEditingStaff(member)
     setForm({
       name: member.name,
@@ -91,21 +65,37 @@ export function StaffTable() {
           .insert([{ ...form, is_active: true }])
       }
       closeModal()
-      fetchStaff()
+      storeFetchStaff()
     } catch (err) {
       console.error('Error saving staff:', err)
+      notifications.show({ title: 'Error', message: 'No se pudo guardar', color: 'red' })
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleToggleActive = async (member: typeof staff[number]) => {
+    const newActive = !(member.is_active !== false)
+    setToggling(prev => new Set(prev).add(member.id))
+
     try {
       await database
         .from('staff')
-        .update({ is_active: false })
-        .eq('id', id)
-      fetchStaff()
+        .update({ is_active: newActive })
+        .eq('id', member.id)
+      storeFetchStaff()
+      notifications.show({
+        title: newActive ? 'Activado' : 'Desactivado',
+        message: `"${member.name}" ${newActive ? 'activado' : 'desactivado'} correctamente`,
+        color: newActive ? 'green' : 'gray'
+      })
     } catch (err) {
-      console.error('Error deleting staff:', err)
+      console.error('Error toggling staff:', err)
+      notifications.show({ title: 'Error', message: 'No se pudo cambiar el estado', color: 'red' })
+    } finally {
+      setToggling(prev => {
+        const next = new Set(prev)
+        next.delete(member.id)
+        return next
+      })
     }
   }
 
@@ -113,19 +103,19 @@ export function StaffTable() {
     <Box p="md">
       <Group justify="space-between" mb="md" align="center">
         <Title order={2} style={isClient && isMobile ? { flex: 1, textAlign: 'center' } : {}}>Staff</Title>
-         <ActionIcon
-                variant="filled"
-                color="cyan"
-                size="lg"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenNew();
-                }}
-                title="Agregar nuevo Staff"
-                style={{ opacity: 0.5}}
-              >
-                <IconPlus size={16} />
-              </ActionIcon>
+        <ActionIcon
+          variant="filled"
+          color="cyan"
+          size="lg"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleOpenNew()
+          }}
+          title="Agregar nuevo Staff"
+          style={{ opacity: 0.5 }}
+        >
+          <IconPlus size={16} />
+        </ActionIcon>
       </Group>
 
       <Table striped highlightOnHover>
@@ -135,30 +125,40 @@ export function StaffTable() {
             <Table.Th>Nombre</Table.Th>
             {!isClient || !isMobile ? <Table.Th>Teléfono</Table.Th> : null}
             {!isClient || !isMobile ? <Table.Th>Dirección</Table.Th> : null}
-            <Table.Th>Acciones</Table.Th>
+            <Table.Th>Activo</Table.Th>
+            <Table.Th />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {staff.map(member => (
-            <Table.Tr key={member.id}>
-              <Table.Td>
-                <Box style={{ width: 20, height: 20, backgroundColor: member.color, borderRadius: 4 }} />
-              </Table.Td>
-              <Table.Td>{member.name}</Table.Td>
-              {!isClient || !isMobile ? <Table.Td>{member.phone}</Table.Td> : null}
-              {!isClient || !isMobile ? <Table.Td>{member.address}</Table.Td> : null}
-              <Table.Td>
-                <Group gap="xs">
+          {staff.map(member => {
+            const isActive = member.is_active !== false
+            return (
+              <Table.Tr
+                key={member.id}
+                style={!isActive ? { opacity: 0.4 } : undefined}
+              >
+                <Table.Td>
+                  <Box style={{ width: 20, height: 20, backgroundColor: member.color, borderRadius: 4 }} />
+                </Table.Td>
+                <Table.Td>{member.name}</Table.Td>
+                {!isClient || !isMobile ? <Table.Td>{member.phone}</Table.Td> : null}
+                {!isClient || !isMobile ? <Table.Td>{member.address}</Table.Td> : null}
+                <Table.Td>
+                  <Switch
+                    checked={isActive}
+                    onChange={() => handleToggleActive(member)}
+                    disabled={toggling.has(member.id)}
+                    size="sm"
+                  />
+                </Table.Td>
+                <Table.Td>
                   <ActionIcon variant="subtle" onClick={() => handleOpenEdit(member)}>
                     ✏️
                   </ActionIcon>
-                  <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(member.id)}>
-                    🗑️
-                  </ActionIcon>
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
+                </Table.Td>
+              </Table.Tr>
+            )
+          })}
         </Table.Tbody>
       </Table>
 

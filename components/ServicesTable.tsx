@@ -1,35 +1,29 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Box, Table, TextInput, NumberInput, Button, Group, Title, Text, ActionIcon, Modal, Stack } from '@mantine/core'
+import { Box, Table, TextInput, NumberInput, Button, Group, Title, ActionIcon, Modal, Stack, Switch } from '@mantine/core'
 import { useMediaQuery } from '@mantine/hooks'
 import { useDisclosure } from '@mantine/hooks'
 import { database } from '@/lib/insforge'
-import dayjs from 'dayjs'
+import { useAppointmentStore } from '@/store/appointmentStore'
 import { IconPlus } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
 
-interface Service {
-  id: string
-  name: string
-  color: string
-  duration_minutes: number
-  cash: number
-  card: number
-  is_active: boolean
-}
+type Service = import('@/store/appointmentStore').Service
 
 export function ServicesTable() {
-  const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
+  const services = useAppointmentStore((s) => s.services)
+  const storeFetchServices = useAppointmentStore((s) => s.fetchServices)
   const [modalOpened, { open: openModal, close: closeModal }] = useDisclosure(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const isMobile = useMediaQuery('(max-width: 500px)')
   const [isClient, setIsClient] = useState(false)
-  
+  const [toggling, setToggling] = useState<Set<string>>(new Set())
+
   useEffect(() => {
     setIsClient(true)
   }, [])
-  
+
   const [form, setForm] = useState({
     name: '',
     color: 'oklch(71.5% 0.143 215.221)',
@@ -38,27 +32,9 @@ export function ServicesTable() {
     card: 0
   })
 
-  const fetchServices = async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await database
-        .from('services')
-        .select('*')
-        .order('name')
-      
-      if (!error && data) {
-        setServices(data)
-      }
-    } catch (err) {
-      console.error('Error fetching services:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchServices()
-  }, [])
+    storeFetchServices()
+  }, [storeFetchServices])
 
   const handleOpenNew = () => {
     setEditingService(null)
@@ -93,21 +69,37 @@ export function ServicesTable() {
           .insert([{ ...form, is_active: true }])
       }
       closeModal()
-      fetchServices()
+      storeFetchServices()
     } catch (err) {
       console.error('Error saving service:', err)
+      notifications.show({ title: 'Error', message: 'No se pudo guardar el servicio', color: 'red' })
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleToggleActive = async (service: Service) => {
+    const newActive = !(service.is_active !== false)
+    setToggling(prev => new Set(prev).add(service.id))
+
     try {
       await database
         .from('services')
-        .update({ is_active: false })
-        .eq('id', id)
-      fetchServices()
+        .update({ is_active: newActive })
+        .eq('id', service.id)
+      storeFetchServices()
+      notifications.show({
+        title: newActive ? 'Activado' : 'Desactivado',
+        message: `"${service.name}" ${newActive ? 'activado' : 'desactivado'} correctamente`,
+        color: newActive ? 'green' : 'gray'
+      })
     } catch (err) {
-      console.error('Error deleting service:', err)
+      console.error('Error toggling service:', err)
+      notifications.show({ title: 'Error', message: 'No se pudo cambiar el estado', color: 'red' })
+    } finally {
+      setToggling(prev => {
+        const next = new Set(prev)
+        next.delete(service.id)
+        return next
+      })
     }
   }
 
@@ -116,34 +108,40 @@ export function ServicesTable() {
       <Group justify="space-between" mb="md" align="center">
         <Title order={2} style={isClient && isMobile ? { flex: 1, textAlign: 'center' } : {}}>Servicios</Title>
         <ActionIcon
-                variant="filled"
-                color="cyan"
-                size="lg"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenNew();
-                }}
-                title="Agregar nuevo Staff"
-                style={{ opacity: 0.5}}
-              >
-                <IconPlus size={16} />
-              </ActionIcon>
+          variant="filled"
+          color="cyan"
+          size="lg"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleOpenNew()
+          }}
+          title="Nuevo servicio"
+          style={{ opacity: 0.5 }}
+        >
+          <IconPlus size={16} />
+        </ActionIcon>
       </Group>
 
       <Table striped highlightOnHover>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Color</Table.Th>
-              <Table.Th>Nombre</Table.Th>
-              <Table.Th>Efectivo</Table.Th>
-              {!isClient || !isMobile ? <Table.Th>Duración</Table.Th> : null}
-              {!isClient || !isMobile ? <Table.Th>Tarjeta</Table.Th> : null}
-              <Table.Th>Acciones</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {services.map(service => (
-              <Table.Tr key={service.id}>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Color</Table.Th>
+            <Table.Th>Nombre</Table.Th>
+            <Table.Th>Efectivo</Table.Th>
+            {!isClient || !isMobile ? <Table.Th>Duración</Table.Th> : null}
+            {!isClient || !isMobile ? <Table.Th>Tarjeta</Table.Th> : null}
+            <Table.Th>Activo</Table.Th>
+            <Table.Th />
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {services.map(service => {
+            const isActive = service.is_active !== false
+            return (
+              <Table.Tr
+                key={service.id}
+                style={!isActive ? { opacity: 0.4 } : undefined}
+              >
                 <Table.Td>
                   <Box style={{ width: 20, height: 20, backgroundColor: service.color, borderRadius: 4 }} />
                 </Table.Td>
@@ -152,19 +150,23 @@ export function ServicesTable() {
                 {!isClient || !isMobile ? <Table.Td>{service.duration_minutes} min</Table.Td> : null}
                 {!isClient || !isMobile ? <Table.Td>${service.card?.toLocaleString() || 0}</Table.Td> : null}
                 <Table.Td>
-                  <Group gap="xs">
-                    <ActionIcon variant="subtle" onClick={() => handleOpenEdit(service)}>
-                      ✏️
-                    </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(service.id)}>
-                      🗑️
-                    </ActionIcon>
-                  </Group>
+                  <Switch
+                    checked={isActive}
+                    onChange={() => handleToggleActive(service)}
+                    disabled={toggling.has(service.id)}
+                    size="sm"
+                  />
+                </Table.Td>
+                <Table.Td>
+                  <ActionIcon variant="subtle" onClick={() => handleOpenEdit(service)}>
+                    ✏️
+                  </ActionIcon>
                 </Table.Td>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            )
+          })}
+        </Table.Tbody>
+      </Table>
 
       <Modal opened={modalOpened} onClose={closeModal} title={editingService ? 'Editar Servicio' : 'Nuevo Servicio'} zIndex={1100}>
         <Stack>

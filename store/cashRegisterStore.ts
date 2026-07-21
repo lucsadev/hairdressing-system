@@ -137,8 +137,20 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
 
   closeRegister: async (id: string, closingBalance: number, notes?: string) => {
     try {
-      const register = get().currentRegister
-      if (!register) return { error: 'No hay caja abierta' }
+      // Try currentRegister first, fallback to fetching by id for history page
+      const current = get().currentRegister
+      const isSame = current?.id === id
+      const register: CashRegister = isSame
+        ? current!
+        : await (async () => {
+            const { data, error } = await database
+              .from('cash_register')
+              .select('*')
+              .eq('id', id)
+              .single()
+            if (error || !data) throw new Error('No se encontró la caja')
+            return data as CashRegister
+          })()
 
       const expected = register.expected_balance
       const difference = closingBalance - expected
