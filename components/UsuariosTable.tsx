@@ -121,11 +121,27 @@ export function UsuariosTable() {
     setDeleteConfirmId(null)
     
     try {
+      // Step 1: Delete from Authentication Users via edge function
+      const fnResponse = await fetch('https://ym5zuqiu.functions.insforge.app/delete-auth-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: id })
+      })
+
+      if (!fnResponse.ok) {
+        const fnError = await fnResponse.json()
+        console.error('Error deleting auth user:', fnError)
+        notifications.show({ color: 'red', title: 'Error', message: `No se pudo eliminar el usuario de autenticación: ${fnError.error || 'Error desconocido'}` })
+        return
+      }
+      
+      // Step 2: Delete from profiles table
       await database
         .from('profiles')
         .delete()
         .eq('id', id)
-      notifications.show({ color: 'green', title: 'Éxito', message: 'Usuario eliminado' })
+      
+      notifications.show({ color: 'green', title: 'Éxito', message: 'Usuario eliminado correctamente' })
       fetchProfiles()
     } catch (err) {
       console.error('Error deleting profile:', err)

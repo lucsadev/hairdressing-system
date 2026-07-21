@@ -43,7 +43,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       
       if (data?.user) {
-        set({ user: { id: data.user.id, email: data.user.email!, email_confirmed_at: null } })
+        let userRole: 'ADMIN' | 'USER' | undefined = undefined
+        
+        // After signup, fetch role from profiles table
+        try {
+          const { data: profiles } = await database
+            .from('profiles')
+            .select('role')
+            .ilike('email', email)
+            .single()
+          
+          if (profiles?.role) {
+            userRole = profiles.role as 'ADMIN' | 'USER'
+            console.log('[authStore] Found user role during signup:', userRole)
+          }
+        } catch (profileErr) {
+          console.log('Profile fetch error during signup:', profileErr)
+        }
+        
+        // Set user with role if found
+        const userObject: any = { id: data.user.id, email: data.user.email!, email_confirmed_at: null }
+        if (userRole) {
+          userObject.role = userRole
+        }
+        
+        set({ user: userObject })
         if (data.accessToken) {
           setSessionToken(data.accessToken)
         }
@@ -88,7 +112,7 @@ signIn: async (email: string, password: string) => {
 
         // Now fetch role from profiles table (token is set)
         try {
-          const { data: profiles, error: profileError } = await database.from('profiles').select('role').eq('email', email).single()
+          const { data: profiles, error: profileError } = await database.from('profiles').select('role').ilike('email', email).single()
           console.log('profile data:', profiles, 'error:', profileError)
           const role = profiles?.role as 'ADMIN' | 'USER'
 
@@ -159,7 +183,7 @@ signIn: async (email: string, password: string) => {
           const retry = await auth.getCurrentUser()
           if (retry.data?.user) {
             try {
-              const { data: profiles } = await database.from('profiles').select('role').eq('email', retry.data.user.email!).single()
+              const { data: profiles } = await database.from('profiles').select('role').ilike('email', retry.data.user.email!).single()
               const role = profiles?.role as 'ADMIN' | 'USER'
               set({ user: { id: retry.data.user.id, email: retry.data.user.email!, email_confirmed_at: null, role }, initialized: true })
             } catch {
@@ -182,7 +206,7 @@ signIn: async (email: string, password: string) => {
 
         // Fetch role from profiles
         try {
-          const { data: profiles } = await database.from('profiles').select('role').eq('email', user.email!).single()
+          const { data: profiles } = await database.from('profiles').select('role').ilike('email', user.email!).single()
           const role = profiles?.role as 'ADMIN' | 'USER'
           console.log('initAuth - got user with role:', role)
           set({ user: { id: user.id, email: user.email!, email_confirmed_at: null, role }, initialized: true })
