@@ -9,7 +9,7 @@ import {
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { useDisclosure } from '@mantine/hooks'
 import { useMediaQuery } from '@mantine/hooks'
-import { IconPlus, IconCash, IconCreditCard, IconArrowUpRight, IconArrowDownRight } from '@tabler/icons-react'
+import { IconPlus, IconCash, IconCreditCard, IconArrowUpRight, IconArrowDownRight, IconEdit } from '@tabler/icons-react'
 import { useCashRegisterStore, EXPENSE_CATEGORIES } from '@/store/cashRegisterStore'
 import { database } from '@/lib/insforge'
 import dayjs from 'dayjs'
@@ -17,7 +17,7 @@ import dayjs from 'dayjs'
 function CashRegisterContent() {
   const {
     currentRegister, expenses, loading,
-    fetchOrCreateRegister, openRegister, closeRegister, refreshRegister,
+    fetchOrCreateRegister, openRegister, closeRegister, updateOpeningBalance, refreshRegister,
     fetchExpenses, createExpense, updateExpense, deleteExpense
   } = useCashRegisterStore()
 
@@ -26,7 +26,9 @@ function CashRegisterContent() {
   const [opModalOpened, { open: openOpModal, close: closeOpModal }] = useDisclosure(false)
   const [closeModalOpened, { open: openCloseModal, close: closeCloseModal }] = useDisclosure(false)
   const [expModalOpened, { open: openExpModal, close: closeExpModal }] = useDisclosure(false)
+  const [editBalanceOpened, { open: openEditBalance, close: closeEditBalance }] = useDisclosure(false)
   const [openingBalance, setOpeningBalance] = useState(0)
+  const [newOpeningBalance, setNewOpeningBalance] = useState(0)
   const [closingBalance, setClosingBalance] = useState(0)
   const [closeNotes, setCloseNotes] = useState('')
   const [editingExpense, setEditingExpense] = useState<any>(null)
@@ -83,6 +85,12 @@ function CashRegisterContent() {
   const handleOpenRegister = async () => {
     await openRegister(today, openingBalance)
     closeOpModal()
+  }
+
+  const handleUpdateOpeningBalance = async () => {
+    if (!currentRegister) return
+    await updateOpeningBalance(currentRegister.id, newOpeningBalance)
+    closeEditBalance()
   }
 
   const handleCloseRegister = async () => {
@@ -168,6 +176,19 @@ function CashRegisterContent() {
               <Group gap="xs" mb="xs">
                 <IconCash size={20} color="var(--mantine-color-blue-6)" />
                 <Text size="sm" c="dimmed">Saldo Inicial</Text>
+                {currentRegister?.status === 'open' && (
+                  <ActionIcon
+                    size="xs"
+                    variant="subtle"
+                    color="blue"
+                    onClick={() => {
+                      setNewOpeningBalance(Number(currentRegister.opening_balance))
+                      openEditBalance()
+                    }}
+                  >
+                    <IconEdit size={14} />
+                  </ActionIcon>
+                )}
               </Group>
               <Text size="xl" fw={700}>
                 {formatCurrency(Number(currentRegister.opening_balance))}
@@ -424,6 +445,30 @@ function CashRegisterContent() {
             <Button variant="outline" onClick={closeExpModal}>Cancelar</Button>
             <Button onClick={handleSaveExpense} disabled={!expForm.description || expForm.amount <= 0}>
               {editingExpense ? 'Guardar' : 'Agregar'}
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal opened={editBalanceOpened} onClose={closeEditBalance} title="Editar Saldo Inicial" centered>
+        <Stack>
+          <Text size="sm" c="dimmed">
+            Saldo actual: {formatCurrency(Number(currentRegister?.opening_balance || 0))}
+          </Text>
+          <NumberInput
+            label="Nuevo Saldo Inicial"
+            value={newOpeningBalance}
+            onChange={(val) => setNewOpeningBalance(Number(val) || 0)}
+            min={0}
+            decimalScale={2}
+            prefix="$"
+            hideControls
+            required
+          />
+          <Group grow>
+            <Button variant="outline" onClick={closeEditBalance}>Cancelar</Button>
+            <Button onClick={handleUpdateOpeningBalance} disabled={newOpeningBalance < 0}>
+              Guardar
             </Button>
           </Group>
         </Stack>
