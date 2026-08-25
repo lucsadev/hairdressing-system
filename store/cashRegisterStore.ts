@@ -74,6 +74,7 @@ interface CashRegisterState {
   fetchOrCreateRegister: (date: string) => Promise<void>
   openRegister: (date: string, openingBalance: number) => Promise<{ error: string | null }>
   closeRegister: (id: string, closingBalance: number, notes?: string) => Promise<{ error: string | null }>
+  updateOpeningBalance: (id: string, newBalance: number) => Promise<{ error: string | null }>
   refreshRegister: (date: string) => Promise<void>
 
   fetchExpenses: (date: string) => Promise<void>
@@ -132,6 +133,28 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
       return { error: null }
     } catch (err: any) {
       return { error: err.message || 'Error al abrir caja' }
+    }
+  },
+
+  updateOpeningBalance: async (id: string, newBalance: number) => {
+    try {
+      const { error } = await database
+        .from('cash_register')
+        .update({
+          opening_balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+
+      if (error) return { error: error.message }
+
+      const register = get().currentRegister
+      if (register) {
+        await get().refreshRegister(register.date)
+      }
+      return { error: null }
+    } catch (err: any) {
+      return { error: err.message || 'Error al actualizar saldo inicial' }
     }
   },
 

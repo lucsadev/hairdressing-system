@@ -58,9 +58,11 @@ export function TicketModal({
   onTicketUpdated,
 }: TicketModalProps) {
   const { createTicket, updateTicket, services, staff } = useAppointmentStore()
-  const { fetchOrCreateRegister, refreshRegister } = useCashRegisterStore()
+  const { fetchOrCreateRegister, refreshRegister, currentRegister } = useCashRegisterStore()
   const [saving, setSaving] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
+
+  const isCashRegisterOpen = currentRegister?.status === 'open'
 
   // Payment method: cash or card
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>(ticket?.payment_method || 'cash')
@@ -166,6 +168,8 @@ export function TicketModal({
   const total = useMemo(() => {
     return items.reduce((sum, item) => sum + item.subtotal, 0)
   }, [items])
+
+  const hasValidAmount = total > 0
 
   // Handle payment method change - update all service items prices
   const handlePaymentMethodChange = (method: 'cash' | 'card') => {
@@ -454,6 +458,13 @@ export function TicketModal({
           </Group>
         </Box>
 
+        {/* Amount error */}
+        {items.length > 0 && !hasValidAmount && (
+          <Text c="red" fw={600} size="sm" ta="center">
+            El monto total debe ser mayor a $0
+          </Text>
+        )}
+
         {/* Actions */}
         {isMobile ? (
           <Stack gap="xs">
@@ -465,56 +476,25 @@ export function TicketModal({
                 color="green"
                 onClick={handleSave}
                 loading={saving}
-                disabled={items.length === 0}
+                disabled={items.length === 0 || !hasValidAmount}
                 size="sm"
               >
                 {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
               </Button>
             </Group>
             {mode === 'edit' && ticket && ticket.status !== 'completed' && (
-              <Button
-                color="blue"
-                variant="filled"
-                fullWidth
-                size="sm"
-                onClick={async () => {
-                  if (!ticket) return
-                  // Save any changes (items, payment method, total) + mark as completed
-                  const itemPayload = items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
-                    service_id,
-                    unit_price,
-                    subtotal,
-                    is_extra,
-                    custom_name,
-                    staff_id: staff_id || null
-                  }))
-                  const result = await updateTicket(ticket.id, {
-                    payment_method: paymentMethod,
-                    total_amount: total,
-                    status: 'completed',
-                    items: itemPayload
-                  })
-                  if (!result.error) {
-                    // Refresh cash register for today
-                    const today = dayjs().format('YYYY-MM-DD')
-                    await fetchOrCreateRegister(today)
-                    await refreshRegister(today)
-                    onTicketUpdated?.()
-                    onClose()
-                  }
-                }}
-              >
-                Cobrar
-              </Button>
-            )}
-          </Stack>
-        ) : (
-          <Group justify="space-between">
-            <Box>
-              {mode === 'edit' && ticket && ticket.status !== 'completed' && (
+              <>
+                {!isCashRegisterOpen && (
+                  <Text c="red" fw={600} size="sm" ta="center">
+                    No se puede cobrar porque no hay caja abierta
+                  </Text>
+                )}
                 <Button
                   color="blue"
                   variant="filled"
+                  fullWidth
+                  size="sm"
+                  disabled={!isCashRegisterOpen || !hasValidAmount}
                   onClick={async () => {
                     if (!ticket) return
                     // Save any changes (items, payment method, total) + mark as completed
@@ -541,10 +521,57 @@ export function TicketModal({
                       onClose()
                     }
                   }}
-                  size="sm"
                 >
                   Cobrar
                 </Button>
+              </>
+            )}
+          </Stack>
+        ) : (
+          <Group justify="space-between">
+            <Box>
+              {mode === 'edit' && ticket && ticket.status !== 'completed' && (
+                <>
+                  {!isCashRegisterOpen && (
+                    <Text c="red" fw={600} size="sm" mb="xs">
+                      No se puede cobrar porque no hay caja abierta
+                    </Text>
+                  )}
+                  <Button
+                    color="blue"
+                    variant="filled"
+                    disabled={!isCashRegisterOpen || !hasValidAmount}
+                    onClick={async () => {
+                      if (!ticket) return
+                      // Save any changes (items, payment method, total) + mark as completed
+                      const itemPayload = items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
+                        service_id,
+                        unit_price,
+                        subtotal,
+                        is_extra,
+                        custom_name,
+                        staff_id: staff_id || null
+                      }))
+                      const result = await updateTicket(ticket.id, {
+                        payment_method: paymentMethod,
+                        total_amount: total,
+                        status: 'completed',
+                        items: itemPayload
+                      })
+                      if (!result.error) {
+                        // Refresh cash register for today
+                        const today = dayjs().format('YYYY-MM-DD')
+                        await fetchOrCreateRegister(today)
+                        await refreshRegister(today)
+                        onTicketUpdated?.()
+                        onClose()
+                      }
+                    }}
+                    size="sm"
+                  >
+                    Cobrar
+                  </Button>
+                </>
               )}
             </Box>
             <Group>
@@ -555,7 +582,7 @@ export function TicketModal({
                 color="green"
                 onClick={handleSave}
                 loading={saving}
-                disabled={items.length === 0}
+                disabled={items.length === 0 || !hasValidAmount}
               >
                 {mode === 'edit' ? 'Actualizar Ticket' : 'Guardar Ticket'}
               </Button>
