@@ -303,7 +303,7 @@ export function TicketModal({
                         }
                       }
                     }}
-                    data={services.filter(s => s.is_active !== false).map(s => s.name)}
+                    data={[...new Set(services.filter(s => s.is_active !== false).map(s => s.name))]}
                     size="xs"
                     placeholder="Servicio o descripción..."
                     comboboxProps={{ withinPortal: false }}
@@ -375,7 +375,7 @@ export function TicketModal({
                             }
                           }
                         }}
-                        data={services.filter(s => s.is_active !== false).map(s => s.name)}
+                        data={[...new Set(services.filter(s => s.is_active !== false).map(s => s.name))]}
                         size="xs"
                         placeholder="Servicio o descripción..."
                         comboboxProps={{ withinPortal: false }}
