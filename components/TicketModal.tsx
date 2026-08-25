@@ -11,6 +11,8 @@ import {
 import { useMediaQuery } from '@mantine/hooks'
 import { IconTrash, IconPlus } from '@tabler/icons-react'
 import { useAppointmentStore, Service, Appointment, Ticket, TicketItem } from '@/store/appointmentStore'
+import { useCashRegisterStore } from '@/store/cashRegisterStore'
+import dayjs from 'dayjs'
 
 interface TicketItemInput {
   id: string
@@ -56,6 +58,7 @@ export function TicketModal({
   onTicketUpdated,
 }: TicketModalProps) {
   const { createTicket, updateTicket, services, staff } = useAppointmentStore()
+  const { fetchOrCreateRegister, refreshRegister } = useCashRegisterStore()
   const [saving, setSaving] = useState(false)
   const isMobile = useMediaQuery('(max-width: 500px)')
 
@@ -128,7 +131,7 @@ export function TicketModal({
 
       setItems(appointmentItems)
     }
-  }, [opened, mode, ticket, clientId, selectedDate, appointments, services, service, paymentMethod])
+  }, [opened, mode, ticket, clientId, selectedDate, appointments, services, service])
 
   // Add extra item
   const addExtraItem = () => {
@@ -476,14 +479,32 @@ export function TicketModal({
                 size="sm"
                 onClick={async () => {
                   if (!ticket) return
-                  const result = await updateTicket(ticket.id, { status: 'completed' })
+                  // Save any changes (items, payment method, total) + mark as completed
+                  const itemPayload = items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
+                    service_id,
+                    unit_price,
+                    subtotal,
+                    is_extra,
+                    custom_name,
+                    staff_id: staff_id || null
+                  }))
+                  const result = await updateTicket(ticket.id, {
+                    payment_method: paymentMethod,
+                    total_amount: total,
+                    status: 'completed',
+                    items: itemPayload
+                  })
                   if (!result.error) {
+                    // Refresh cash register for today
+                    const today = dayjs().format('YYYY-MM-DD')
+                    await fetchOrCreateRegister(today)
+                    await refreshRegister(today)
                     onTicketUpdated?.()
                     onClose()
                   }
                 }}
               >
-                Marcar como Completado
+                Cobrar
               </Button>
             )}
           </Stack>
@@ -496,15 +517,33 @@ export function TicketModal({
                   variant="filled"
                   onClick={async () => {
                     if (!ticket) return
-                    const result = await updateTicket(ticket.id, { status: 'completed' })
+                    // Save any changes (items, payment method, total) + mark as completed
+                    const itemPayload = items.map(({ id, service_id, unit_price, subtotal, is_extra, custom_name, staff_id }) => ({
+                      service_id,
+                      unit_price,
+                      subtotal,
+                      is_extra,
+                      custom_name,
+                      staff_id: staff_id || null
+                    }))
+                    const result = await updateTicket(ticket.id, {
+                      payment_method: paymentMethod,
+                      total_amount: total,
+                      status: 'completed',
+                      items: itemPayload
+                    })
                     if (!result.error) {
+                      // Refresh cash register for today
+                      const today = dayjs().format('YYYY-MM-DD')
+                      await fetchOrCreateRegister(today)
+                      await refreshRegister(today)
                       onTicketUpdated?.()
                       onClose()
                     }
                   }}
                   size="sm"
                 >
-                  Marcar como Completado
+                  Cobrar
                 </Button>
               )}
             </Box>
